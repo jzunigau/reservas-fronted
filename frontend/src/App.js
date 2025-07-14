@@ -1,0 +1,110 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+// Context
+import { AuthProvider } from './context/AuthContext';
+
+// Components
+import Navbar from './components/Navbar';
+import Loading from './components/Loading';
+
+// Pages
+import LoginPage from './pages/LoginPage';
+import ReservasPage from './pages/ReservasPage';
+import AdminPage from './pages/AdminPage';
+import DashboardPage from './pages/DashboardPage';
+import CalendarioPage from './pages/CalendarioPage';
+
+// Protected Route Component
+import ProtectedRoute from './components/ProtectedRoute';
+
+// Styles
+import './styles/main.css';
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <div className="App">
+          <Navbar />
+          <main className="main-content">
+            <Routes>
+              {/* Rutas públicas */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/reservas" element={<ReservasPage />} />
+              <Route path="/calendario" element={<CalendarioPage />} />
+              
+              {/* Rutas protegidas */}
+              <Route 
+                path="/admin" 
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminPage />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/dashboard" 
+                element={
+                  <ProtectedRoute allowedRoles={['profesor', 'admin']}>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Ruta por defecto */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              
+              {/* Ruta 404 */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </main>
+          
+          {/* Toast notifications */}
+          <ToastContainer
+            position="top-right"
+            autoClose={5000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light"
+          />
+        </div>
+      </Router>
+    </AuthProvider>
+  );
+}
+
+// Componente 404
+const NotFound = () => {
+  return (
+    <div className="container mt-5">
+      <div className="row justify-content-center">
+        <div className="col-md-6 text-center">
+          <div className="card shadow">
+            <div className="card-body p-5">
+              <h1 className="display-1 text-muted">404</h1>
+              <h2 className="mb-4">Página no encontrada</h2>
+              <p className="text-muted mb-4">
+                La página que buscas no existe o ha sido movida.
+              </p>
+              <a href="/dashboard" className="btn btn-primary">
+                <i className="fas fa-home me-2"></i>
+                Ir al Dashboard
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default App; 
