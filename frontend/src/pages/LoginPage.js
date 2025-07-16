@@ -26,28 +26,20 @@ const LoginPage = () => {
     setLoading(true);
     
     try {
-      // Modo desarrollo: verificar credenciales localmente
-      const user = testUsers[form.usuario];
+      // Login automático para desarrollo
+      const userData = {
+        id: 1,
+        nombre: 'Usuario Demo',
+        email: 'demo@escuela.com',
+        rol: 'profesor'
+      };
       
-      if (user && user.password === form.password) {
-        // Simular respuesta de API
-        const userData = {
-          id: 1,
-          nombre: user.nombre,
-          email: user.email,
-          rol: user.rol
-        };
-        
-        // Simular token
-        const token = 'dev_token_' + Date.now();
-        
-        login(userData, token);
-        navigate('/dashboard');
-      } else {
-        setError('Credenciales incorrectas. Usa: admin/admin123, profesor/prof123, o demo/demo123');
-      }
+      const token = 'dev_token_' + Date.now();
+      login(userData, token);
+      navigate('/dashboard');
+      
     } catch (err) {
-      setError('Error de conexión. Usando modo desarrollo.');
+      setError('Error de conexión.');
     } finally {
       setLoading(false);
     }
@@ -61,42 +53,21 @@ const LoginPage = () => {
         background: 'white', padding: '3rem', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', textAlign: 'center', maxWidth: '400px', width: '100%'
       }}>
         <h1 style={{ color: '#1976d2', marginBottom: '2rem', fontSize: '2.5rem', fontWeight: 'bold' }}>Sistema de Reservas</h1>
-        <h2 style={{ color: '#333', marginBottom: '1.5rem', fontSize: '1.8rem' }}>Iniciar Sesión</h2>
+        <h2 style={{ color: '#333', marginBottom: '1.5rem', fontSize: '1.8rem' }}>Acceso Directo</h2>
         
-        {/* Información de credenciales de prueba */}
         <div style={{ 
-          background: '#e3f2fd', 
+          background: '#e8f5e8', 
           padding: '1rem', 
           borderRadius: '8px', 
           marginBottom: '1.5rem',
           fontSize: '0.9rem',
-          color: '#1976d2'
+          color: '#2e7d32'
         }}>
-          <strong>Credenciales de Prueba:</strong><br/>
-          <strong>Admin:</strong> admin / admin123<br/>
-          <strong>Profesor:</strong> profesor / prof123<br/>
-          <strong>Demo:</strong> demo / demo123
+          <strong>Modo Desarrollo:</strong><br/>
+          Haz clic en "Acceder" para entrar directamente
         </div>
         
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <input
-            type="text"
-            name="usuario"
-            placeholder="Usuario"
-            value={form.usuario}
-            onChange={handleChange}
-            required
-            style={{ padding: '0.8rem', borderRadius: '6px', border: '1px solid #ccc', fontSize: '1rem' }}
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Contraseña"
-            value={form.password}
-            onChange={handleChange}
-            required
-            style={{ padding: '0.8rem', borderRadius: '6px', border: '1px solid #ccc', fontSize: '1rem' }}
-          />
           <button
             type="submit"
             disabled={loading}
@@ -104,7 +75,7 @@ const LoginPage = () => {
             onMouseEnter={e => e.target.style.background = '#45a049'}
             onMouseLeave={e => e.target.style.background = '#4caf50'}
           >
-            {loading ? 'Ingresando...' : 'Iniciar Sesión'}
+            {loading ? 'Accediendo...' : 'Acceder al Sistema'}
           </button>
         </form>
         {error && <p style={{ color: 'red', marginTop: '1rem' }}>{error}</p>}
