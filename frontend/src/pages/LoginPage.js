@@ -9,6 +9,13 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Credenciales de prueba para desarrollo
+  const testUsers = {
+    'admin': { password: 'admin123', rol: 'admin', nombre: 'Administrador', email: 'admin@escuela.com' },
+    'profesor': { password: 'prof123', rol: 'profesor', nombre: 'Profesor', email: 'profesor@escuela.com' },
+    'demo': { password: 'demo123', rol: 'profesor', nombre: 'Usuario Demo', email: 'demo@escuela.com' }
+  };
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -17,21 +24,30 @@ const LoginPage = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
+    
     try {
-      const response = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
-      });
-      const data = await response.json();
-      if (response.ok && data.token) {
-        login(data.user, data.token);
-        navigate('/reservas');
+      // Modo desarrollo: verificar credenciales localmente
+      const user = testUsers[form.usuario];
+      
+      if (user && user.password === form.password) {
+        // Simular respuesta de API
+        const userData = {
+          id: 1,
+          nombre: user.nombre,
+          email: user.email,
+          rol: user.rol
+        };
+        
+        // Simular token
+        const token = 'dev_token_' + Date.now();
+        
+        login(userData, token);
+        navigate('/dashboard');
       } else {
-        setError(data.message || 'Credenciales incorrectas');
+        setError('Credenciales incorrectas. Usa: admin/admin123, profesor/prof123, o demo/demo123');
       }
     } catch (err) {
-      setError('Error de red o servidor');
+      setError('Error de conexión. Usando modo desarrollo.');
     } finally {
       setLoading(false);
     }
@@ -46,6 +62,22 @@ const LoginPage = () => {
       }}>
         <h1 style={{ color: '#1976d2', marginBottom: '2rem', fontSize: '2.5rem', fontWeight: 'bold' }}>Sistema de Reservas</h1>
         <h2 style={{ color: '#333', marginBottom: '1.5rem', fontSize: '1.8rem' }}>Iniciar Sesión</h2>
+        
+        {/* Información de credenciales de prueba */}
+        <div style={{ 
+          background: '#e3f2fd', 
+          padding: '1rem', 
+          borderRadius: '8px', 
+          marginBottom: '1.5rem',
+          fontSize: '0.9rem',
+          color: '#1976d2'
+        }}>
+          <strong>Credenciales de Prueba:</strong><br/>
+          <strong>Admin:</strong> admin / admin123<br/>
+          <strong>Profesor:</strong> profesor / prof123<br/>
+          <strong>Demo:</strong> demo / demo123
+        </div>
+        
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <input
             type="text"
