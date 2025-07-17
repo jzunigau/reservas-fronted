@@ -136,21 +136,6 @@ export const guardarReserva = async (nuevaReserva) => {
     return guardarReservaLocalStorage(nuevaReserva)
   }
 }
-  try {
-    const response = await fetch(`${API_URL}/reservas`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(nuevaReserva)
-    });
-    
-    const result = await handleApiResponse(response);
-    return result.data || null;
-  } catch (error) {
-    console.error('Error al guardar reserva:', error);
-    // Fallback a localStorage
-    return guardarReservaLocalStorage(nuevaReserva);
-  }
-};
 
 // Actualizar estado de una reserva
 export const actualizarReserva = async (id, datosActualizados) => {
