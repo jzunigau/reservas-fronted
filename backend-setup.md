@@ -9,59 +9,60 @@
 - Guarda las credenciales de conexión
 
 ### 2. Configurar base de datos
-```sql
--- Ejecutar en Supabase SQL Editor
--- Crear tabla de usuarios
-CREATE TABLE usuarios (
-  id SERIAL PRIMARY KEY,
-  username VARCHAR(50) UNIQUE NOT NULL,
-  email VARCHAR(100) UNIQUE NOT NULL,
-  password VARCHAR(255) NOT NULL,
-  rol VARCHAR(20) NOT NULL DEFAULT 'profesor',
-  nombre VARCHAR(100) NOT NULL,
-  apellido VARCHAR(100) NOT NULL,
-  activo BOOLEAN DEFAULT true,
-  created_at TIMESTAMP DEFAULT NOW()
-);
+**IMPORTANTE**: Usa el script completo `database/setup_supabase.sql` para crear todas las tablas, índices y configuraciones necesarias.
 
--- Crear tabla de reservas
-CREATE TABLE reservas (
-  id SERIAL PRIMARY KEY,
-  usuario_id INTEGER REFERENCES usuarios(id),
-  fecha DATE NOT NULL,
-  bloque VARCHAR(50) NOT NULL,
-  sub_bloque VARCHAR(50) NOT NULL,
-  dia VARCHAR(20) NOT NULL,
-  laboratorio VARCHAR(100) NOT NULL,
-  asignatura VARCHAR(100) NOT NULL,
-  profesor VARCHAR(100) NOT NULL,
-  estado VARCHAR(20) DEFAULT 'activa',
-  created_at TIMESTAMP DEFAULT NOW()
-);
-```
+El script incluye:
+- ✅ Tabla de usuarios con índices optimizados
+- ✅ Tabla de laboratorios con datos predeterminados
+- ✅ Tabla de reservas con constraints y validaciones
+- ✅ Row Level Security (RLS) configurado
+- ✅ Triggers automáticos para updated_at
+- ✅ Vistas para consultas optimizadas
+- ✅ Usuarios de prueba predeterminados
 
 ### 3. Variables de entorno para Vercel
 En el dashboard de Vercel, configura estas variables:
 
 ```
-DATABASE_URL=postgresql://usuario:password@host:puerto/database
-JWT_SECRET=tu_jwt_secret_muy_seguro
+# Supabase Configuration
+REACT_APP_SUPABASE_URL=https://tu-proyecto.supabase.co
+REACT_APP_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIs...
+REACT_APP_API_URL=https://tu-proyecto.supabase.co/rest/v1
+
+# Database Configuration
+DATABASE_URL=postgresql://postgres:[password]@db.[proyecto].supabase.co:5432/postgres
+
+# Security
+JWT_SECRET=tu_jwt_secret_muy_seguro_32_caracteres_minimo
 NODE_ENV=production
+
+# Optional
+BCRYPT_ROUNDS=10
+CORS_ORIGIN=https://tu-dominio.vercel.app
 ```
 
-### 4. Crear usuario admin
-```sql
--- Generar hash de contraseña con bcrypt
--- Usar: https://bcrypt-generator.com/
-INSERT INTO usuarios (username, email, password, rol, nombre, apellido)
-VALUES (
-  'admin',
-  'admin@escuela.com',
-  '$2b$10$...', -- Hash de tu contraseña
-  'admin',
-  'Administrador',
-  'Sistema'
-);
+### 4. Usuarios predeterminados
+El script SQL ya incluye estos usuarios de prueba:
+
+**Administrador:**
+- Email: `admin@escuela.com`
+- Password: `admin123`
+- Rol: `admin`
+
+**Profesores:**
+- Email: `profesor1@escuela.com` / Password: `admin123`
+- Email: `profesor2@escuela.com` / Password: `admin123`
+- Rol: `profesor`
+
+### 5. Despliegue automatizado
+Para hacer deploy automático, usa:
+
+```bash
+# Opción 1: Script de Windows
+.\deploy_vercel.bat
+
+# Opción 2: Comando manual
+vercel --prod
 ```
 
 ## 🔗 Enlaces útiles
