@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Sistema de reservas de laboratorio escolar - Gestiona las reservas de laboratorios de manera eficiente"
+    />
+    <meta name="keywords" content="reservas, laboratorio, escuela, gestión, profesores" />
+    <meta name="author" content="Equipo de Desarrollo" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://reservas-laboratorio.com/" />
+    <meta property="og:title" content="Sistema de Reservas de Laboratorio" />
+    <meta property="og:description" content="Gestiona las reservas de laboratorios de manera eficiente" />
+    <meta property="og:image" content="%PUBLIC_URL%/og-image.jpg" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://reservas-laboratorio.com/" />
+    <meta property="twitter:title" content="Sistema de Reservas de Laboratorio" />
+    <meta property="twitter:description" content="Gestiona las reservas de laboratorios de manera eficiente" />
+    <meta property="twitter:image" content="%PUBLIC_URL%/og-image.jpg" />
+
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <title>Sistema de Reservas de Laboratorio</title>
+    
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background-color: #f8f9fa;
+      }
+      
+      #root {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      .loading-spinner {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+      
+      .spinner {
+        width: 50px;
+        height: 50px;
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      .loading-text {
+        color: white;
+        margin-top: 20px;
+        font-size: 18px;
+        font-weight: 500;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>Necesitas habilitar JavaScript para ejecutar esta aplicación.</noscript>
+    
+    <div id="root">
+      <div class="loading-spinner">
+        <div>
+          <div class="spinner"></div>
+          <div class="loading-text">Cargando Sistema de Reservas...</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html> 
