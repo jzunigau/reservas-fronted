@@ -4,22 +4,64 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY
 
+let supabase
+
+// Validar variables de entorno con mensaje de ayuda
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
+  console.error(`
+🚨 ERROR: Variables de entorno de Supabase no encontradas!
+
+Para solucionar este problema:
+
+1. Asegúrate de tener un archivo .env en la carpeta frontend/ 
+2. Agrega las siguientes variables:
+
+REACT_APP_SUPABASE_URL=https://tu-proyecto.supabase.co
+REACT_APP_SUPABASE_ANON_KEY=tu-clave-publica
+
+3. Obtén estos valores desde tu dashboard de Supabase en:
+   - Settings > API > Project URL
+   - Settings > API > Project API keys > anon/public
+
+4. Si no tienes un proyecto de Supabase, crea uno en https://supabase.com
+5. Luego ejecuta el script database/setup_supabase.sql en el SQL Editor
+
+Valores actuales:
+- REACT_APP_SUPABASE_URL: ${supabaseUrl || 'UNDEFINED'}
+- REACT_APP_SUPABASE_ANON_KEY: ${supabaseAnonKey ? '[DEFINIDA]' : 'UNDEFINED'}
+  `)
+  
+  // Crear cliente dummy para development
+  supabase = {
+    auth: {
+      getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+      signInWithPassword: () => Promise.resolve({ data: null, error: { message: 'Supabase no configurado' } }),
+      signOut: () => Promise.resolve({ error: null })
+    },
+    from: () => ({
+      select: () => Promise.resolve({ data: [], error: null }),
+      insert: () => Promise.resolve({ data: null, error: { message: 'Supabase no configurado' } }),
+      update: () => Promise.resolve({ data: null, error: { message: 'Supabase no configurado' } }),
+      delete: () => Promise.resolve({ data: null, error: { message: 'Supabase no configurado' } })
+    })
+  }
+} else {
+  supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
+    },
+  })
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
-    },
-  },
-})
+export { supabase }
 
 // Configuración de la base de datos
 export const DB_TABLES = {
