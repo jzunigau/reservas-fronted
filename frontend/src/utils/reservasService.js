@@ -1,12 +1,34 @@
 // Servicio para manejar las reservas usando Supabase
 
-import { supabase, db, utils } from '../config/supabase'
+import { supabase } from '../config/supabase'
 
 // Obtener todas las reservas
 export const obtenerReservas = async () => {
   try {
-    const { data, error } = await db.getReservations()
-    if (error) throw error
+    console.log('🔍 DEBUG RESERVAS - Obteniendo reservas...')
+    console.log('🔍 DEBUG RESERVAS - Supabase disponible:', !!supabase)
+    console.log('🔍 DEBUG RESERVAS - Supabase.from disponible:', !!supabase?.from)
+    
+    if (!supabase?.from) {
+      console.log('⚠️ DEBUG RESERVAS - Supabase no disponible, usando fallback')
+      return obtenerReservasLocalStorage()
+    }
+    
+    const { data, error } = await supabase
+      .from('reservas')
+      .select(`
+        *,
+        usuario:usuarios(nombre, apellido, email),
+        laboratorio_data:laboratorios(nombre, capacidad, ubicacion)
+      `)
+      .order('fecha', { ascending: true })
+    
+    if (error) {
+      console.error('🚨 DEBUG RESERVAS - Error de Supabase:', error)
+      throw error
+    }
+    
+    console.log('✅ DEBUG RESERVAS - Datos obtenidos:', data?.length || 0, 'reservas')
     return data || []
   } catch (error) {
     console.error('Error al obtener reservas:', error)
@@ -18,8 +40,29 @@ export const obtenerReservas = async () => {
 // Obtener reservas por fecha específica
 export const obtenerReservasPorFecha = async (fecha) => {
   try {
-    const { data, error } = await db.getReservationsByDate(fecha)
-    if (error) throw error
+    console.log('🔍 DEBUG RESERVAS - Obteniendo reservas por fecha:', fecha)
+    
+    if (!supabase?.from) {
+      console.log('⚠️ DEBUG RESERVAS - Supabase no disponible, usando fallback por fecha')
+      return obtenerReservasPorFechaLocalStorage(fecha)
+    }
+    
+    const { data, error } = await supabase
+      .from('reservas')
+      .select(`
+        *,
+        usuario:usuarios(nombre, apellido, email),
+        laboratorio_data:laboratorios(nombre, capacidad, ubicacion)
+      `)
+      .eq('fecha', fecha)
+      .order('hora_inicio', { ascending: true })
+    
+    if (error) {
+      console.error('🚨 DEBUG RESERVAS - Error por fecha:', error)
+      throw error
+    }
+    
+    console.log('✅ DEBUG RESERVAS - Reservas por fecha obtenidas:', data?.length || 0)
     return data || []
   } catch (error) {
     console.error('Error al obtener reservas por fecha:', error)
@@ -54,8 +97,29 @@ export const obtenerReservasPorMes = async (year, month) => {
 // Verificar disponibilidad de un slot
 export const verificarDisponibilidad = async (fecha, bloque, subBloque, dia) => {
   try {
-    const { available, error } = await db.checkAvailability(fecha, bloque, subBloque, dia)
-    if (error) throw error
+    console.log('🔍 DEBUG RESERVAS - Verificando disponibilidad:', { fecha, bloque, subBloque, dia })
+    
+    if (!supabase?.from) {
+      console.log('⚠️ DEBUG RESERVAS - Supabase no disponible, usando fallback disponibilidad')
+      return !existeReservaEnSlotLocalStorage(fecha, dia, bloque, subBloque)
+    }
+    
+    const { data, error } = await supabase
+      .from('reservas')
+      .select('id')
+      .eq('fecha', fecha)
+      .eq('dia_semana', dia)
+      .eq('bloque', bloque)
+      .eq('sub_bloque', subBloque)
+      .neq('estado', 'cancelada')
+    
+    if (error) {
+      console.error('🚨 DEBUG RESERVAS - Error verificando disponibilidad:', error)
+      throw error
+    }
+    
+    const available = !data || data.length === 0
+    console.log('✅ DEBUG RESERVAS - Disponibilidad:', available)
     return available
   } catch (error) {
     console.error('Error al verificar disponibilidad:', error)
@@ -126,9 +190,17 @@ export const guardarReserva = async (nuevaReserva) => {
       estado: 'confirmada'
     }
 
-    const { data, error } = await db.createReservation(reservaData)
-    if (error) throw error
+    const { data, error } = await supabase
+      .from('reservas')
+      .insert([reservaData])
+      .select()
     
+    if (error) {
+      console.error('🚨 DEBUG RESERVAS - Error creando reserva:', error)
+      throw error
+    }
+    
+    console.log('✅ DEBUG RESERVAS - Reserva creada:', data?.[0])
     return data?.[0] || null
   } catch (error) {
     console.error('Error al guardar reserva:', error)
@@ -140,8 +212,25 @@ export const guardarReserva = async (nuevaReserva) => {
 // Actualizar estado de una reserva
 export const actualizarReserva = async (id, datosActualizados) => {
   try {
-    const { data, error } = await db.updateReservation(id, datosActualizados)
-    if (error) throw error
+    console.log('🔍 DEBUG RESERVAS - Actualizando reserva:', id, datosActualizados)
+    
+    if (!supabase?.from) {
+      console.log('⚠️ DEBUG RESERVAS - Supabase no disponible para actualización')
+      return null
+    }
+    
+    const { data, error } = await supabase
+      .from('reservas')
+      .update(datosActualizados)
+      .eq('id', id)
+      .select()
+    
+    if (error) {
+      console.error('🚨 DEBUG RESERVAS - Error actualizando reserva:', error)
+      throw error
+    }
+    
+    console.log('✅ DEBUG RESERVAS - Reserva actualizada:', data?.[0])
     return data?.[0] || null
   } catch (error) {
     console.error('Error al actualizar reserva:', error)
@@ -152,8 +241,25 @@ export const actualizarReserva = async (id, datosActualizados) => {
 // Eliminar una reserva
 export const eliminarReserva = async (id) => {
   try {
-    const { data, error } = await db.cancelReservation(id)
-    if (error) throw error
+    console.log('🔍 DEBUG RESERVAS - Eliminando reserva:', id)
+    
+    if (!supabase?.from) {
+      console.log('⚠️ DEBUG RESERVAS - Supabase no disponible para eliminación')
+      return false
+    }
+    
+    const { data, error } = await supabase
+      .from('reservas')
+      .update({ estado: 'cancelada' })
+      .eq('id', id)
+      .select()
+    
+    if (error) {
+      console.error('🚨 DEBUG RESERVAS - Error cancelando reserva:', error)
+      throw error
+    }
+    
+    console.log('✅ DEBUG RESERVAS - Reserva cancelada:', data?.[0])
     return true
   } catch (error) {
     console.error('Error al eliminar reserva:', error)
@@ -180,8 +286,25 @@ export const obtenerEstadisticas = async () => {
 // Obtener laboratorios disponibles
 export const obtenerLaboratorios = async () => {
   try {
-    const { data, error } = await db.getLaboratories()
-    if (error) throw error
+    console.log('🔍 DEBUG RESERVAS - Obteniendo laboratorios...')
+    
+    if (!supabase?.from) {
+      console.log('⚠️ DEBUG RESERVAS - Supabase no disponible para laboratorios')
+      return []
+    }
+    
+    const { data, error } = await supabase
+      .from('laboratorios')
+      .select('*')
+      .eq('activo', true)
+      .order('nombre', { ascending: true })
+    
+    if (error) {
+      console.error('🚨 DEBUG RESERVAS - Error obteniendo laboratorios:', error)
+      throw error
+    }
+    
+    console.log('✅ DEBUG RESERVAS - Laboratorios obtenidos:', data?.length || 0)
     return data || []
   } catch (error) {
     console.error('Error al obtener laboratorios:', error)
