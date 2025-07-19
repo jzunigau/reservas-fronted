@@ -8,7 +8,6 @@ import { AuthProvider } from './context/AuthContext';
 
 // Components
 import Navbar from './components/Navbar';
-import Loading from './components/Loading';
 
 // Pages
 import LoginPage from './pages/LoginPage';

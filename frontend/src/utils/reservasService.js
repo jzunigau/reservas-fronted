@@ -161,6 +161,7 @@ export const guardarReserva = async (nuevaReserva) => {
       .eq('nombre', nuevaReserva.laboratorio)
       .single()
 
+    let laboratorio_id
     if (labError || !labData) {
       // Si no encuentra el laboratorio, usar el primero disponible
       const { data: firstLab } = await supabase
@@ -170,13 +171,16 @@ export const guardarReserva = async (nuevaReserva) => {
         .limit(1)
         .single()
       
-      labData = firstLab || { id: 1 }
+      const finalLabData = firstLab || { id: 1 }
+      laboratorio_id = finalLabData.id
+    } else {
+      laboratorio_id = labData.id
     }
 
     // Preparar datos para inserción
     const reservaData = {
       usuario_id: userData.id,
-      laboratorio_id: labData.id,
+      laboratorio_id: laboratorio_id,
       fecha: nuevaReserva.fecha,
       bloque: parseInt(nuevaReserva.bloque),
       sub_bloque: nuevaReserva.subBloque,
