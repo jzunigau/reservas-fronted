@@ -18,6 +18,7 @@ import DashboardPage from './pages/DashboardPage';
 import CalendarioPage from './pages/CalendarioPage';
 import DebugPage from './pages/DebugPage';
 import EnvDebugPage from './pages/EnvDebugPage';
+import JWTDecoderPage from './pages/JWTDecoderPage';
 
 // Protected Route Component
 import ProtectedRoute from './components/ProtectedRoute';
@@ -36,6 +37,7 @@ function App() {
               {/* Ruta de debug - TEMPORAL */}
               <Route path="/debug" element={<DebugPage />} />
               <Route path="/env-debug" element={<EnvDebugPage />} />
+              <Route path="/jwt-debug" element={<JWTDecoderPage />} />
               
               {/* Rutas públicas */}
               <Route path="/login" element={<LoginPage />} />
