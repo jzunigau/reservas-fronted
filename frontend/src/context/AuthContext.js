@@ -1,7 +1,8 @@
 import React, { createContext, useState, useEffect } from 'react'
-import { supabase, auth } from '../config/supabase'
+import { supabase } from '../config/supabase'
 
 console.log('🔍 DEBUG AUTH - Iniciando AuthContext...')
+console.log('🔍 DEBUG AUTH - Supabase client:', !!supabase)
 
 export const AuthContext = createContext()
 
@@ -16,7 +17,15 @@ export const AuthProvider = ({ children }) => {
     const getInitialSession = async () => {
       try {
         console.log('🔍 DEBUG AUTH - Obteniendo sesión inicial...')
-        const { data: { session } } = await auth.getSession()
+        console.log('🔍 DEBUG AUTH - Supabase auth exists:', !!supabase?.auth)
+        
+        if (!supabase?.auth) {
+          console.log('⚠️ DEBUG AUTH - Supabase auth no disponible, usando modo dummy')
+          setLoading(false)
+          return
+        }
+        
+        const { data: { session } } = await supabase.auth.getSession()
         console.log('🔍 DEBUG AUTH - Sesión obtenida:', !!session)
         
         if (session) {
@@ -34,8 +43,14 @@ export const AuthProvider = ({ children }) => {
     getInitialSession()
 
     // Escuchar cambios en la autenticación
+    if (!supabase?.auth) {
+      console.log('⚠️ DEBUG AUTH - Supabase auth no disponible para listener')
+      setLoading(false)
+      return
+    }
+
     console.log('🔍 DEBUG AUTH - Configurando listener de auth...')
-    const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔍 DEBUG AUTH - Cambio de estado:', event, !!session)
       
       if (event === 'SIGNED_IN' && session) {
@@ -84,7 +99,16 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setLoading(true)
-      const { data, error } = await auth.signIn(email, password)
+      
+      if (!supabase?.auth) {
+        console.log('⚠️ DEBUG AUTH - Supabase auth no disponible para login')
+        return { success: false, error: 'Servicio de autenticación no disponible' }
+      }
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password
+      })
       
       if (error) {
         throw error
@@ -103,7 +127,15 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       setLoading(true)
-      const { error } = await auth.signOut()
+      
+      if (!supabase?.auth) {
+        console.log('⚠️ DEBUG AUTH - Supabase auth no disponible para logout')
+        setUser(null)
+        localStorage.removeItem('auth_token')
+        return { success: true }
+      }
+      
+      const { error } = await supabase.auth.signOut()
       if (error) {
         throw error
       }
@@ -125,16 +157,23 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true)
       
+      if (!supabase?.auth) {
+        console.log('⚠️ DEBUG AUTH - Supabase auth no disponible para registro')
+        return { success: false, error: 'Servicio de autenticación no disponible' }
+      }
+      
       // Primero crear el usuario en Supabase Auth
-      const { data: authData, error: authError } = await auth.signUp(
-        userData.email, 
-        userData.password,
-        {
-          nombre: userData.nombre,
-          apellido: userData.apellido,
-          rol: userData.rol || 'profesor'
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: userData.email, 
+        password: userData.password,
+        options: {
+          data: {
+            nombre: userData.nombre,
+            apellido: userData.apellido,
+            rol: userData.rol || 'profesor'
+          }
         }
-      )
+      })
 
       if (authError) {
         throw authError
