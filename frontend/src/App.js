@@ -8,6 +8,7 @@ import { AuthProvider } from './context/AuthContext';
 
 // Components
 import Navbar from './components/Navbar';
+import RoleBasedRedirect from './components/RoleBasedRedirect';
 
 // Pages
 import LoginPage from './pages/LoginPage';
@@ -40,10 +41,30 @@ function App() {
               
               {/* Rutas públicas */}
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/reservas" element={<ReservasPage />} />
-              <Route path="/calendario" element={<CalendarioPage />} />
               
-              {/* Rutas protegidas */}
+              {/* Rutas protegidas por rol */}
+              
+              {/* Reservas - accesible para profesores y admins */}
+              <Route 
+                path="/reservas" 
+                element={
+                  <ProtectedRoute allowedRoles={['profesor', 'admin']}>
+                    <ReservasPage />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Calendario - accesible para profesores y admins */}
+              <Route 
+                path="/calendario" 
+                element={
+                  <ProtectedRoute allowedRoles={['profesor', 'admin']}>
+                    <CalendarioPage />
+                  </ProtectedRoute>
+                } 
+              />
+
+              {/* Dashboard/Admin - solo para administradores */}
               <Route 
                 path="/admin" 
                 element={
@@ -53,6 +74,7 @@ function App() {
                 } 
               />
               
+              {/* Dashboard general - mantener para compatibilidad */}
               <Route 
                 path="/dashboard" 
                 element={
@@ -62,8 +84,8 @@ function App() {
                 } 
               />
               
-              {/* Ruta por defecto */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              {/* Ruta por defecto - redirección basada en rol */}
+              <Route path="/" element={<RoleBasedRedirect />} />
               
               {/* Ruta 404 */}
               <Route path="*" element={<NotFound />} />

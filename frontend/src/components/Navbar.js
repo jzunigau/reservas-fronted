@@ -24,68 +24,100 @@ const Navbar = () => {
           {/* Enlaces de navegación */}
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-4">
-              {/* Enlace al calendario (siempre visible) */}
-              <Link
-                to="/calendario"
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
-                  isActive('/calendario')
-                    ? 'bg-white/20 text-white'
-                    : 'text-white/80 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                📅 Calendario
-              </Link>
-
+              
               {/* Enlaces para usuarios autenticados */}
               {user ? (
                 <>
-                  <Link
-                    to="/reservas"
-                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
-                      isActive('/reservas')
-                        ? 'bg-white/20 text-white'
-                        : 'text-white/80 hover:bg-white/10 hover:text-white'
-                    }`}
-                  >
-                    📋 Reservas
-                  </Link>
-                  
-                  <Link
-                    to="/dashboard"
-                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
-                      isActive('/dashboard')
-                        ? 'bg-white/20 text-white'
-                        : 'text-white/80 hover:bg-white/10 hover:text-white'
-                    }`}
-                  >
-                    🏠 Dashboard
-                  </Link>
-
-                  {/* Enlace de admin solo para administradores */}
+                  {/* Para ADMIN: Dashboard (Admin) → Reservas → Calendario */}
                   {user.rol === 'admin' && (
-                    <Link
-                      to="/admin"
-                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
-                        isActive('/admin')
-                          ? 'bg-white/20 text-white'
-                          : 'text-white/80 hover:bg-white/10 hover:text-white'
-                      }`}
-                    >
-                      ⚙️ Administración
-                    </Link>
+                    <>
+                      <Link
+                        to="/admin"
+                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                          isActive('/admin')
+                            ? 'bg-white/20 text-white'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        🏠 Dashboard Admin
+                      </Link>
+                      
+                      <Link
+                        to="/reservas"
+                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                          isActive('/reservas')
+                            ? 'bg-white/20 text-white'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        📋 Reservas
+                      </Link>
+                      
+                      <Link
+                        to="/calendario"
+                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                          isActive('/calendario')
+                            ? 'bg-white/20 text-white'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        📅 Calendario
+                      </Link>
+                    </>
+                  )}
+                  
+                  {/* Para PROFESOR: Reservas → Calendario */}
+                  {user.rol === 'profesor' && (
+                    <>
+                      <Link
+                        to="/reservas"
+                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                          isActive('/reservas')
+                            ? 'bg-white/20 text-white'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        📋 Reservas
+                      </Link>
+                      
+                      <Link
+                        to="/calendario"
+                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                          isActive('/calendario')
+                            ? 'bg-white/20 text-white'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        📅 Calendario
+                      </Link>
+                    </>
                   )}
                 </>
               ) : (
-                <Link
-                  to="/login"
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
-                    isActive('/login')
-                      ? 'bg-white/20 text-white'
-                      : 'text-white/80 hover:bg-white/10 hover:text-white'
-                  }`}
-                >
-                  🔐 Iniciar Sesión
-                </Link>
+                <>
+                  {/* Enlace al calendario (visible para visitantes) */}
+                  <Link
+                    to="/calendario"
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                      isActive('/calendario')
+                        ? 'bg-white/20 text-white'
+                        : 'text-white/80 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    📅 Calendario
+                  </Link>
+                  
+                  <Link
+                    to="/login"
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                      isActive('/login')
+                        ? 'bg-white/20 text-white'
+                        : 'text-white/80 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    🔐 Iniciar Sesión
+                  </Link>
+                </>
               )}
             </div>
           </div>
@@ -117,65 +149,97 @@ const Navbar = () => {
           {/* Menú móvil */}
           <div className="md:hidden">
             <div className="flex flex-col space-y-1">
-              <Link
-                to="/calendario"
-                className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${
-                  isActive('/calendario')
-                    ? 'bg-white/20 text-white'
-                    : 'text-white/80 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                📅
-              </Link>
               
               {user ? (
                 <>
-                  <Link
-                    to="/reservas"
-                    className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${
-                      isActive('/reservas')
-                        ? 'bg-white/20 text-white'
-                        : 'text-white/80 hover:bg-white/10 hover:text-white'
-                    }`}
-                  >
-                    📋
-                  </Link>
-                  
-                  <Link
-                    to="/dashboard"
-                    className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${
-                      isActive('/dashboard')
-                        ? 'bg-white/20 text-white'
-                        : 'text-white/80 hover:bg-white/10 hover:text-white'
-                    }`}
-                  >
-                    🏠
-                  </Link>
-
+                  {/* Para ADMIN */}
                   {user.rol === 'admin' && (
-                    <Link
-                      to="/admin"
-                      className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${
-                        isActive('/admin')
-                          ? 'bg-white/20 text-white'
-                          : 'text-white/80 hover:bg-white/10 hover:text-white'
-                      }`}
-                    >
-                      ⚙️
-                    </Link>
+                    <>
+                      <Link
+                        to="/admin"
+                        className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${
+                          isActive('/admin')
+                            ? 'bg-white/20 text-white'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        🏠 Admin
+                      </Link>
+                      
+                      <Link
+                        to="/reservas"
+                        className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${
+                          isActive('/reservas')
+                            ? 'bg-white/20 text-white'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        📋 Reservas
+                      </Link>
+                      
+                      <Link
+                        to="/calendario"
+                        className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${
+                          isActive('/calendario')
+                            ? 'bg-white/20 text-white'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        📅 Calendario
+                      </Link>
+                    </>
+                  )}
+                  
+                  {/* Para PROFESOR */}
+                  {user.rol === 'profesor' && (
+                    <>
+                      <Link
+                        to="/reservas"
+                        className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${
+                          isActive('/reservas')
+                            ? 'bg-white/20 text-white'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        📋 Reservas
+                      </Link>
+                      
+                      <Link
+                        to="/calendario"
+                        className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${
+                          isActive('/calendario')
+                            ? 'bg-white/20 text-white'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        📅 Calendario
+                      </Link>
+                    </>
                   )}
                 </>
               ) : (
-                <Link
-                  to="/login"
-                  className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${
-                    isActive('/login')
-                      ? 'bg-white/20 text-white'
-                      : 'text-white/80 hover:bg-white/10 hover:text-white'
-                  }`}
-                >
-                  🔐
-                </Link>
+                <>
+                  <Link
+                    to="/calendario"
+                    className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${
+                      isActive('/calendario')
+                        ? 'bg-white/20 text-white'
+                        : 'text-white/80 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    📅 Calendario
+                  </Link>
+                  <Link
+                    to="/login"
+                    className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${
+                      isActive('/login')
+                        ? 'bg-white/20 text-white'
+                        : 'text-white/80 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    🔐 Login
+                  </Link>
+                </>
               )}
             </div>
           </div>
