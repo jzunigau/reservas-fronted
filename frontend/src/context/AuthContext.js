@@ -1,6 +1,8 @@
 import React, { createContext, useState, useEffect } from 'react'
 import { supabase, auth } from '../config/supabase'
 
+console.log('🔍 DEBUG AUTH - Iniciando AuthContext...')
+
 export const AuthContext = createContext()
 
 export const AuthProvider = ({ children }) => {
@@ -8,16 +10,23 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    console.log('🔍 DEBUG AUTH - useEffect iniciado')
+    
     // Obtener sesión inicial
     const getInitialSession = async () => {
       try {
+        console.log('🔍 DEBUG AUTH - Obteniendo sesión inicial...')
         const { data: { session } } = await auth.getSession()
+        console.log('🔍 DEBUG AUTH - Sesión obtenida:', !!session)
+        
         if (session) {
+          console.log('🔍 DEBUG AUTH - Cargando datos de usuario...')
           await loadUserData(session.user)
         }
       } catch (error) {
-        console.error('Error al obtener sesión inicial:', error)
+        console.error('🚨 DEBUG AUTH - Error al obtener sesión inicial:', error)
       } finally {
+        console.log('🔍 DEBUG AUTH - Finalizando carga inicial')
         setLoading(false)
       }
     }
@@ -25,7 +34,10 @@ export const AuthProvider = ({ children }) => {
     getInitialSession()
 
     // Escuchar cambios en la autenticación
+    console.log('🔍 DEBUG AUTH - Configurando listener de auth...')
     const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
+      console.log('🔍 DEBUG AUTH - Cambio de estado:', event, !!session)
+      
       if (event === 'SIGNED_IN' && session) {
         await loadUserData(session.user)
       } else if (event === 'SIGNED_OUT') {

@@ -16,6 +16,7 @@ import ReservasPage from './pages/ReservasPage';
 import AdminPage from './pages/AdminPage';
 import DashboardPage from './pages/DashboardPage';
 import CalendarioPage from './pages/CalendarioPage';
+import DebugPage from './pages/DebugPage';
 
 // Protected Route Component
 import ProtectedRoute from './components/ProtectedRoute';
@@ -31,6 +32,9 @@ function App() {
           <Navbar />
           <main className="main-content">
             <Routes>
+              {/* Ruta de debug - TEMPORAL */}
+              <Route path="/debug" element={<DebugPage />} />
+              
               {/* Rutas públicas */}
               <Route path="/login" element={<LoginPage />} />
               <Route path="/reservas" element={<ReservasPage />} />

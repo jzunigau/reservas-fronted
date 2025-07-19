@@ -5,61 +5,75 @@ import config from './env'
 const supabaseUrl = config.supabaseUrl
 const supabaseAnonKey = config.supabaseAnonKey
 
+console.log('🔍 DEBUG SUPABASE - Iniciando cliente...')
+console.log('- URL:', supabaseUrl)
+console.log('- Anon Key disponible:', !!supabaseAnonKey)
+
 let supabase
 
 // Validar variables de entorno con mensaje de ayuda
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error(`
-🚨 ERROR: Variables de entorno de Supabase no encontradas!
-
-Para solucionar este problema:
-
-1. Asegúrate de tener un archivo .env en la carpeta frontend/ 
-2. Agrega las siguientes variables:
-
-REACT_APP_SUPABASE_URL=https://tu-proyecto.supabase.co
-REACT_APP_SUPABASE_ANON_KEY=tu-clave-publica
-
-3. Obtén estos valores desde tu dashboard de Supabase en:
-   - Settings > API > Project URL
-   - Settings > API > Project API keys > anon/public
-
-4. Si no tienes un proyecto de Supabase, crea uno en https://supabase.com
-5. Luego ejecuta el script database/setup_supabase.sql en el SQL Editor
-
-Valores actuales:
-- REACT_APP_SUPABASE_URL: ${supabaseUrl || 'UNDEFINED'}
-- REACT_APP_SUPABASE_ANON_KEY: ${supabaseAnonKey ? '[DEFINIDA]' : 'UNDEFINED'}
-  `)
+  console.error('🚨 SUPABASE ERROR: Variables faltantes')
   
   // Crear cliente dummy para development
   supabase = {
     auth: {
-      getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-      signInWithPassword: () => Promise.resolve({ data: null, error: { message: 'Supabase no configurado' } }),
-      signOut: () => Promise.resolve({ error: null })
+      getSession: () => {
+        console.log('🔍 DEBUG: getSession llamado (modo dummy)')
+        return Promise.resolve({ data: { session: null }, error: null })
+      },
+      onAuthStateChange: () => {
+        console.log('🔍 DEBUG: onAuthStateChange llamado (modo dummy)')
+        return { data: { subscription: { unsubscribe: () => {} } } }
+      },
+      signInWithPassword: () => {
+        console.log('🔍 DEBUG: signInWithPassword llamado (modo dummy)')
+        return Promise.resolve({ data: null, error: { message: 'Supabase no configurado' } })
+      },
+      signOut: () => {
+        console.log('🔍 DEBUG: signOut llamado (modo dummy)')
+        return Promise.resolve({ error: null })
+      }
     },
     from: () => ({
-      select: () => Promise.resolve({ data: [], error: null }),
-      insert: () => Promise.resolve({ data: null, error: { message: 'Supabase no configurado' } }),
-      update: () => Promise.resolve({ data: null, error: { message: 'Supabase no configurado' } }),
-      delete: () => Promise.resolve({ data: null, error: { message: 'Supabase no configurado' } })
+      select: () => {
+        console.log('🔍 DEBUG: select llamado (modo dummy)')
+        return Promise.resolve({ data: [], error: null })
+      },
+      insert: () => {
+        console.log('🔍 DEBUG: insert llamado (modo dummy)')
+        return Promise.resolve({ data: null, error: { message: 'Supabase no configurado' } })
+      },
+      update: () => {
+        console.log('🔍 DEBUG: update llamado (modo dummy)')
+        return Promise.resolve({ data: null, error: { message: 'Supabase no configurado' } })
+      },
+      delete: () => {
+        console.log('🔍 DEBUG: delete llamado (modo dummy)')
+        return Promise.resolve({ data: null, error: { message: 'Supabase no configurado' } })
+      }
     })
   }
+  console.log('🔍 DEBUG: Cliente dummy creado')
 } else {
-  supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true
-    },
-    realtime: {
-      params: {
-        eventsPerSecond: 10,
+  try {
+    console.log('🔍 DEBUG: Creando cliente real de Supabase...')
+    supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true
       },
-    },
-  })
+      realtime: {
+        params: {
+          eventsPerSecond: 10,
+        },
+      },
+    })
+    console.log('✅ DEBUG: Cliente de Supabase creado exitosamente')
+  } catch (error) {
+    console.error('🚨 DEBUG: Error creando cliente de Supabase:', error)
+  }
 }
 
 export { supabase }
