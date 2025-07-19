@@ -17,6 +17,7 @@ import AdminPage from './pages/AdminPage';
 import DashboardPage from './pages/DashboardPage';
 import CalendarioPage from './pages/CalendarioPage';
 import DebugPage from './pages/DebugPage';
+import EnvDebugPage from './pages/EnvDebugPage';
 
 // Protected Route Component
 import ProtectedRoute from './components/ProtectedRoute';
@@ -34,6 +35,7 @@ function App() {
             <Routes>
               {/* Ruta de debug - TEMPORAL */}
               <Route path="/debug" element={<DebugPage />} />
+              <Route path="/env-debug" element={<EnvDebugPage />} />
               
               {/* Rutas públicas */}
               <Route path="/login" element={<LoginPage />} />
