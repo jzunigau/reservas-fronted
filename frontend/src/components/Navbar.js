@@ -1,13 +1,24 @@
 import React, { useContext } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isActive = (path) => {
     return location.pathname === path;
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error durante logout:', error);
+      navigate('/login'); // Navegar al login aún si hay error
+    }
   };
 
   return (
@@ -132,7 +143,7 @@ const Navbar = () => {
                     <span className="text-white/80 ml-2">({user.rol})</span>
                   </div>
                   <button
-                    onClick={logout}
+                    onClick={handleLogout}
                     className="bg-white/20 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-white/30 transition-colors duration-200"
                   >
                     Cerrar Sesión
@@ -216,6 +227,14 @@ const Navbar = () => {
                       </Link>
                     </>
                   )}
+                  
+                  {/* Botón de logout para móvil */}
+                  <button
+                    onClick={handleLogout}
+                    className="block w-full text-left px-3 py-2 rounded-md text-base font-medium bg-white/20 text-white hover:bg-white/30 transition-colors duration-200 mt-2"
+                  >
+                    🚪 Cerrar Sesión
+                  </button>
                 </>
               ) : (
                 <>

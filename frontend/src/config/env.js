@@ -10,7 +10,7 @@ console.log('- REACT_APP_API_URL:', process.env.REACT_APP_API_URL)
 console.log('- Todas las variables REACT_APP_:', Object.keys(process.env).filter(key => key.startsWith('REACT_APP_')))
 
 const config = {
-  supabaseUrl: process.env.REACT_APP_SUPABASE_URL || 'https://frnyhgywpoomkdhguph.supabase.co',
+  supabaseUrl: process.env.REACT_APP_SUPABASE_URL || 'https://trnyhqywpioomkdhgugb.supabase.co',
   supabaseAnonKey: process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybnlocXl3cGlvb21rZGhndWdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0NjQ3MTAsImV4cCI6MjA2ODA0MDcxMH0.CxYnD2n4FH37lESyI2Wn3X4En9vNv9yMjzE_GHf1gk4',
   apiUrl: process.env.REACT_APP_API_URL || 'http://localhost:5000/api'
 }
