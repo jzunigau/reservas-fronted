@@ -204,7 +204,10 @@ export const guardarReserva = async (nuevaReserva) => {
       laboratorio_id: laboratorio_id,
       fecha: nuevaReserva.fecha,
       bloque: parseInt(nuevaReserva.bloque),
-      sub_bloque: nuevaReserva.subBloque,
+      sub_bloque: nuevaReserva.subBloque ? 
+        (nuevaReserva.subBloque === '1° hora' ? 1 : 
+         nuevaReserva.subBloque === '2° hora' ? 2 : 
+         parseInt(nuevaReserva.subBloque) || 1) : 1,  // CONVERSIÓN DE TEXTO A NÚMERO
       dia_semana: nuevaReserva.dia,
       tipo_bloque: nuevaReserva.tipoBloque || 'completo',
       curso: nuevaReserva.curso,

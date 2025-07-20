@@ -241,6 +241,7 @@ const DatabaseDebugPage = () => {
         laboratorio_id: labData.id,
         fecha: '2025-07-23',
         bloque: 1,
+        sub_bloque: 1,  // CAMPO REQUERIDO AGREGADO
         dia_semana: 'Miércoles',
         tipo_bloque: 'completo',
         curso: '1°C (Test)',
