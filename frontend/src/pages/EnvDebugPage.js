@@ -44,7 +44,7 @@ const EnvDebugPage = () => {
         </pre>
       </details>
     </div>
-  )
-}
+  );
+};
 
-export default EnvDebugPage
+export default EnvDebugPage;

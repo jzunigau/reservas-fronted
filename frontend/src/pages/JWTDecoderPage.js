@@ -134,7 +134,7 @@ const JWTDecoderPage = () => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default JWTDecoderPage
+export default JWTDecoderPage;
