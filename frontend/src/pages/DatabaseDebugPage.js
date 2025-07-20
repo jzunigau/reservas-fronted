@@ -20,20 +20,45 @@ const DatabaseDebugPage = () => {
       
       setResultado(prev => prev + '✅ Supabase inicializado correctamente\n');
 
-      // Test 2: Verificar conexión básica
-      const { data, error } = await supabase
+      // Test 1.5: Verificar URL y configuración
+      setResultado(prev => prev + `🔍 URL Supabase: ${supabase.supabaseUrl}\n`);
+      setResultado(prev => prev + `🔍 Key disponible: ${!!supabase.supabaseKey}\n`);
+
+      // Test 2: Verificar conexión básica con más detalles
+      setResultado(prev => prev + '🔍 Intentando conectar a tabla usuarios...\n');
+      
+      const { data, error, count } = await supabase
         .from('usuarios')
-        .select('count', { count: 'exact', head: true });
+        .select('*', { count: 'exact' })
+        .limit(1);
       
       if (error) {
-        setResultado(prev => prev + `❌ Error conectando a tabla usuarios: ${error.message}\n`);
+        setResultado(prev => prev + `❌ Error conectando a tabla usuarios:\n`);
+        setResultado(prev => prev + `   Mensaje: ${error.message}\n`);
+        setResultado(prev => prev + `   Código: ${error.code || 'N/A'}\n`);
+        setResultado(prev => prev + `   Detalles: ${error.details || 'N/A'}\n`);
+        setResultado(prev => prev + `   Hint: ${error.hint || 'N/A'}\n`);
+        setResultado(prev => prev + `   Error completo: ${JSON.stringify(error, null, 2)}\n`);
+        
+        // Intentar diagnóstico adicional
+        if (error.message.includes('Failed to fetch')) {
+          setResultado(prev => prev + '\n🔍 DIAGNÓSTICO: Error "Failed to fetch"\n');
+          setResultado(prev => prev + '   Posibles causas:\n');
+          setResultado(prev => prev + '   1. URL de Supabase incorrecta\n');
+          setResultado(prev => prev + '   2. Problema de CORS\n');
+          setResultado(prev => prev + '   3. Supabase project inactivo/pausado\n');
+          setResultado(prev => prev + '   4. Problemas de red\n');
+        }
         return;
       }
       
-      setResultado(prev => prev + `✅ Conexión exitosa a tabla usuarios (${data} usuarios)\n`);
+      setResultado(prev => prev + `✅ Conexión exitosa a tabla usuarios\n`);
+      setResultado(prev => prev + `📊 Total usuarios: ${count}\n`);
+      setResultado(prev => prev + `📋 Muestra de datos: ${JSON.stringify(data, null, 2)}\n`);
 
       // Test 3: Buscar usuario actual
       if (user?.email) {
+        setResultado(prev => prev + `\n🔍 Buscando usuario: ${user.email}\n`);
         const { data: userData, error: userError } = await supabase
           .from('usuarios')
           .select('*')
@@ -48,6 +73,7 @@ const DatabaseDebugPage = () => {
       }
 
       // Test 4: Verificar tabla laboratorios
+      setResultado(prev => prev + '\n🔍 Verificando tabla laboratorios...\n');
       const { data: labData, error: labError } = await supabase
         .from('laboratorios')
         .select('*')
@@ -61,6 +87,7 @@ const DatabaseDebugPage = () => {
       }
 
       // Test 5: Verificar tabla reservas
+      setResultado(prev => prev + '\n🔍 Verificando tabla reservas...\n');
       const { data: reservasData, error: reservasError } = await supabase
         .from('reservas')
         .select('*')
@@ -77,7 +104,55 @@ const DatabaseDebugPage = () => {
       }
 
     } catch (error) {
-      setResultado(prev => prev + `❌ Error general: ${error.message}\n`);
+      setResultado(prev => prev + `❌ Error general capturado:\n`);
+      setResultado(prev => prev + `   Mensaje: ${error.message}\n`);
+      setResultado(prev => prev + `   Stack: ${error.stack}\n`);
+      setResultado(prev => prev + `   Error completo: ${JSON.stringify(error, null, 2)}\n`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const testUrlSupabase = async () => {
+    setLoading(true);
+    setResultado('🔍 Probando URL de Supabase directamente...\n');
+    
+    try {
+      const supabaseUrl = 'https://trnyhqywpioomkdhgugb.supabase.co';
+      const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybnlocXl3cGlvb21rZGhndWdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0NjQ3MTAsImV4cCI6MjA2ODA0MDcxMH0.CxYnD2n4FH37lESyI2Wn3X4En9vNv9yMjzE_GHf1gk4';
+      
+      setResultado(prev => prev + `🔍 URL: ${supabaseUrl}\n`);
+      setResultado(prev => prev + `🔍 Key: ${anonKey.substring(0, 50)}...\n`);
+      
+      // Test HTTP directo
+      const response = await fetch(`${supabaseUrl}/rest/v1/usuarios?select=count`, {
+        method: 'GET',
+        headers: {
+          'apikey': anonKey,
+          'Authorization': `Bearer ${anonKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'count=exact'
+        }
+      });
+      
+      setResultado(prev => prev + `📡 HTTP Status: ${response.status}\n`);
+      setResultado(prev => prev + `📡 HTTP Status Text: ${response.statusText}\n`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        setResultado(prev => prev + `❌ Error HTTP: ${errorText}\n`);
+        return;
+      }
+      
+      const data = await response.json();
+      setResultado(prev => prev + `✅ Respuesta HTTP exitosa\n`);
+      setResultado(prev => prev + `📊 Datos: ${JSON.stringify(data, null, 2)}\n`);
+      
+    } catch (error) {
+      setResultado(prev => prev + `❌ Error en test HTTP directo:\n`);
+      setResultado(prev => prev + `   Mensaje: ${error.message}\n`);
+      setResultado(prev => prev + `   Tipo: ${error.name}\n`);
+      setResultado(prev => prev + `   Stack: ${error.stack}\n`);
     } finally {
       setLoading(false);
     }
@@ -180,6 +255,22 @@ const DatabaseDebugPage = () => {
           }}
         >
           {loading ? 'Probando...' : 'Probar Conexión'}
+        </button>
+        
+        <button 
+          onClick={testUrlSupabase} 
+          disabled={loading}
+          style={{
+            padding: '0.5rem 1rem',
+            marginRight: '1rem',
+            backgroundColor: '#9c27b0',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: loading ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {loading ? 'Probando...' : 'Test HTTP Directo'}
         </button>
         
         <button 
