@@ -39,7 +39,7 @@ const Navbar = () => {
               {/* Enlaces para usuarios autenticados */}
               {user ? (
                 <>
-                  {/* Para ADMIN: Dashboard (Admin) → Reservas → Calendario */}
+                  {/* Para ADMIN: Dashboard (Admin) → Reservas → Calendario → Mi Cuenta */}
                   {user.rol === 'admin' && (
                     <>
                       <Link
@@ -74,10 +74,21 @@ const Navbar = () => {
                       >
                         📅 Calendario
                       </Link>
+
+                      <Link
+                        to="/mi-cuenta"
+                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                          isActive('/mi-cuenta')
+                            ? 'bg-white/20 text-white'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        👤 Mi Cuenta
+                      </Link>
                     </>
                   )}
                   
-                  {/* Para PROFESOR: Reservas → Calendario */}
+                  {/* Para PROFESOR: Reservas → Calendario → Mi Cuenta */}
                   {user.rol === 'profesor' && (
                     <>
                       <Link
@@ -100,6 +111,17 @@ const Navbar = () => {
                         }`}
                       >
                         📅 Calendario
+                      </Link>
+
+                      <Link
+                        to="/mi-cuenta"
+                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                          isActive('/mi-cuenta')
+                            ? 'bg-white/20 text-white'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        👤 Mi Cuenta
                       </Link>
                     </>
                   )}
@@ -198,6 +220,17 @@ const Navbar = () => {
                       >
                         📅 Calendario
                       </Link>
+
+                      <Link
+                        to="/mi-cuenta"
+                        className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${
+                          isActive('/mi-cuenta')
+                            ? 'bg-white/20 text-white'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        👤 Mi Cuenta
+                      </Link>
                     </>
                   )}
                   
@@ -224,6 +257,17 @@ const Navbar = () => {
                         }`}
                       >
                         📅 Calendario
+                      </Link>
+
+                      <Link
+                        to="/mi-cuenta"
+                        className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${
+                          isActive('/mi-cuenta')
+                            ? 'bg-white/20 text-white'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        👤 Mi Cuenta
                       </Link>
                     </>
                   )}

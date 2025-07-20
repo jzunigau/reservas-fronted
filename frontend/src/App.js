@@ -16,6 +16,7 @@ import ReservasPage from './pages/ReservasPage';
 import AdminPage from './pages/AdminPage';
 import DashboardPage from './pages/DashboardPage';
 import CalendarioPage from './pages/CalendarioPage';
+import MiCuentaPage from './pages/MiCuentaPage';
 import DebugPage from './pages/DebugPage';
 import EnvDebugPage from './pages/EnvDebugPage';
 import JWTDecoderPage from './pages/JWTDecoderPage';
@@ -60,6 +61,16 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['profesor', 'admin']}>
                     <CalendarioPage />
+                  </ProtectedRoute>
+                } 
+              />
+
+              {/* Mi Cuenta - accesible para profesores y admins */}
+              <Route 
+                path="/mi-cuenta" 
+                element={
+                  <ProtectedRoute allowedRoles={['profesor', 'admin']}>
+                    <MiCuentaPage />
                   </ProtectedRoute>
                 } 
               />
