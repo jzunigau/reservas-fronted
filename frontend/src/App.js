@@ -9,6 +9,7 @@ import ReservasPage from './pages/ReservasPage';
 import AdminPage from './pages/AdminPage';
 import CalendarioPage from './pages/CalendarioPage';
 import MiCuentaPage from './pages/MiCuentaPage';
+import DatabaseDebugPage from './pages/DatabaseDebugPage';
 import './styles/main.css';
 
 function App() {
@@ -21,6 +22,9 @@ function App() {
             <Routes>
               {/* Rutas públicas */}
               <Route path="/login" element={<LoginPage />} />
+              
+              {/* Ruta de debug - TEMPORAL */}
+              <Route path="/db-debug" element={<DatabaseDebugPage />} />
               
               {/* Rutas protegidas */}
               <Route 

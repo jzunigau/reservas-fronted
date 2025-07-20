@@ -137,21 +137,37 @@ export const existeReservaEnSlot = async (fecha, dia, bloque, subBloque) => {
 // Guardar una nueva reserva
 export const guardarReserva = async (nuevaReserva) => {
   try {
-    // Obtener el usuario actual
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    console.log('🔍 DEBUG RESERVAS - Guardando reserva:', nuevaReserva)
+    
+    if (!supabase?.from) {
+      console.log('⚠️ DEBUG RESERVAS - Supabase no disponible, usando localStorage')
+      return guardarReservaLocalStorage(nuevaReserva)
+    }
+
+    // Obtener datos del usuario desde localStorage (nuestro sistema de auth)
+    const userData = localStorage.getItem('user_data')
+    if (!userData) {
+      console.log('❌ DEBUG RESERVAS - No hay datos de usuario en localStorage')
       throw new Error('Usuario no autenticado')
     }
 
-    // Buscar información del usuario en la tabla usuarios
-    const { data: userData, error: userError } = await supabase
+    const user = JSON.parse(userData)
+    console.log('🔍 DEBUG RESERVAS - Usuario actual:', user)
+
+    // Buscar información del usuario en la tabla usuarios por email
+    const { data: dbUserData, error: userError } = await supabase
       .from('usuarios')
-      .select('id, rol')
+      .select('id, rol, nombre, apellido')
       .eq('email', user.email)
       .single()
 
-    if (userError || !userData) {
-      throw new Error('Usuario no encontrado en la base de datos')
+    console.log('🔍 DEBUG RESERVAS - Datos de usuario en BD:', dbUserData)
+    console.log('🔍 DEBUG RESERVAS - Error de usuario:', userError)
+
+    if (userError || !dbUserData) {
+      console.log('⚠️ DEBUG RESERVAS - Usuario no encontrado en BD, creando fallback')
+      // Si no encuentra el usuario en BD, usar localStorage como fallback
+      return guardarReservaLocalStorage(nuevaReserva)
     }
 
     // Buscar el laboratorio por nombre
@@ -160,6 +176,9 @@ export const guardarReserva = async (nuevaReserva) => {
       .select('id')
       .eq('nombre', nuevaReserva.laboratorio)
       .single()
+
+    console.log('🔍 DEBUG RESERVAS - Datos de laboratorio:', labData)
+    console.log('🔍 DEBUG RESERVAS - Error de laboratorio:', labError)
 
     let laboratorio_id
     if (labError || !labData) {
@@ -173,13 +192,15 @@ export const guardarReserva = async (nuevaReserva) => {
       
       const finalLabData = firstLab || { id: 1 }
       laboratorio_id = finalLabData.id
+      console.log('🔍 DEBUG RESERVAS - Usando laboratorio por defecto:', laboratorio_id)
     } else {
       laboratorio_id = labData.id
+      console.log('🔍 DEBUG RESERVAS - Usando laboratorio encontrado:', laboratorio_id)
     }
 
     // Preparar datos para inserción
     const reservaData = {
-      usuario_id: userData.id,
+      usuario_id: dbUserData.id,
       laboratorio_id: laboratorio_id,
       fecha: nuevaReserva.fecha,
       bloque: parseInt(nuevaReserva.bloque),
@@ -193,6 +214,8 @@ export const guardarReserva = async (nuevaReserva) => {
       observaciones: nuevaReserva.observaciones || null,
       estado: 'confirmada'
     }
+
+    console.log('🔍 DEBUG RESERVAS - Datos a insertar:', reservaData)
 
     const { data, error } = await supabase
       .from('reservas')
