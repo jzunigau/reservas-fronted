@@ -668,12 +668,17 @@ const CalendarioPage = () => {
                     📅 Fecha
                   </label>
                   <div className="p-2 bg-gray-50 rounded text-sm">
-                    {new Date(reservaSeleccionada.fecha).toLocaleDateString('es-ES', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
+                    {(() => {
+                      // Formatear fecha correctamente sin problemas de timezone
+                      const fechaParts = reservaSeleccionada.fecha.split('-');
+                      const fecha = new Date(fechaParts[0], fechaParts[1] - 1, fechaParts[2]);
+                      return fecha.toLocaleDateString('es-ES', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      });
+                    })()}
                   </div>
                 </div>
                 
@@ -730,9 +735,21 @@ const CalendarioPage = () => {
                   📝 Tipo de Reserva
                 </label>
                 <div className="p-2 bg-gray-50 rounded text-sm">
-                  {reservaSeleccionada.tipoBloque === 'completo' ? 'Bloque completo (2 horas)' : 
-                   reservaSeleccionada.tipoBloque === '1hora' ? 'Primera hora únicamente' : 
-                   'Segunda hora únicamente'}
+                  {(() => {
+                    // Lógica mejorada para mostrar tipo de reserva
+                    const tipo = reservaSeleccionada.tipoBloque || reservaSeleccionada.tipo_bloque;
+                    const subBloque = reservaSeleccionada.subBloque || reservaSeleccionada.sub_bloque;
+                    
+                    if (tipo === 'completo') {
+                      return 'Bloque completo (2 horas)';
+                    } else if (subBloque === '1° hora' || subBloque === 1) {
+                      return 'Primera hora únicamente';
+                    } else if (subBloque === '2° hora' || subBloque === 2) {
+                      return 'Segunda hora únicamente';
+                    } else {
+                      return tipo === '1hora' ? 'Primera hora únicamente' : 'Segunda hora únicamente';
+                    }
+                  })()}
                 </div>
               </div>
 

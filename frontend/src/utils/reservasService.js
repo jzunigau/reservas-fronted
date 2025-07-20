@@ -355,9 +355,17 @@ export const formatearReservaDesdeFormulario = (formData, reservaSeleccionada) =
     'Ciencias Naturales': 'Lab. Ciencias'
   };
 
+  // Determinar sub_bloque basado en tipoBloque
+  let subBloque = 1; // Por defecto
+  if (formData.tipoBloque === '2hora') {
+    subBloque = 2;
+  } else if (formData.tipoBloque === 'completo') {
+    subBloque = 1; // Para bloque completo, usar 1 como referencia
+  }
+
   return {
     bloque: reservaSeleccionada.bloque.id,
-    subBloque: reservaSeleccionada.subBloque,
+    subBloque: subBloque,
     dia: reservaSeleccionada.dia,
     fecha: formData.fecha,
     tipoBloque: formData.tipoBloque,
