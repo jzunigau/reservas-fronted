@@ -50,6 +50,110 @@ function getSemanaInfo(fechaStr) {
   };
 }
 
+// Función para calcular la fecha exacta basada en el día de la semana seleccionado
+function calcularFechaDelDia(fechaBase, diaNombre) {
+  if (!fechaBase) return fechaBase;
+  
+  const diasSemanaMap = {
+    'Lunes': 1,
+    'Martes': 2,
+    'Miércoles': 3,
+    'Jueves': 4,
+    'Viernes': 5
+  };
+  
+  const fecha = new Date(fechaBase + 'T00:00:00');
+  const diaSemanaActual = fecha.getDay(); // 0=domingo, 1=lunes, ...
+  const diaSemanaObjetivo = diasSemanaMap[diaNombre];
+  
+  // Calcular el lunes de la semana
+  const lunes = new Date(fecha);
+  lunes.setDate(fecha.getDate() - ((diaSemanaActual + 6) % 7));
+  
+  // Calcular la fecha del día seleccionado
+  const fechaObjetivo = new Date(lunes);
+  fechaObjetivo.setDate(lunes.getDate() + (diaSemanaObjetivo - 1));
+  
+  return fechaObjetivo.toISOString().split('T')[0];
+}
+
+// Función para verificar si una fecha/hora ya pasó
+function esFechaHoraPasada(fecha, bloque) {
+  const ahora = new Date();
+  const fechaReserva = new Date(fecha + 'T00:00:00');
+  
+  // Si la fecha es anterior a hoy, definitivamente es pasada
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  if (fechaReserva < hoy) {
+    return true;
+  }
+  
+  // Si es hoy, verificar si el bloque ya pasó (permitiendo 15 minutos de retraso)
+  if (fechaReserva.toDateString() === hoy.toDateString()) {
+    const horariosBloque = {
+      1: 8,  // 08:00
+      2: 10, // 10:00
+      3: 12, // 12:00
+      4: 14, // 14:00
+      5: 16  // 16:00
+    };
+    
+    const horaBloque = horariosBloque[bloque];
+    if (horaBloque) {
+      const horaLimite = new Date();
+      horaLimite.setHours(horaBloque, 15, 0, 0); // 15 minutos DESPUÉS del inicio del bloque
+      
+      return ahora > horaLimite; // Cambié >= por > para permitir exactamente 15 minutos
+    }
+  }
+  
+  return false;
+}
+
+// Función para verificar si una fecha completa ya pasó
+function esFechaPasada(fecha) {
+  if (!fecha) return false;
+  const fechaReserva = new Date(fecha + 'T00:00:00');
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  return fechaReserva < hoy;
+}
+
+// Función para obtener información de tiempo restante para reservar
+function getTiempoRestanteParaReservar(fecha, bloque) {
+  const ahora = new Date();
+  const fechaReserva = new Date(fecha + 'T00:00:00');
+  
+  // Solo calcular para hoy
+  if (fechaReserva.toDateString() !== ahora.toDateString()) {
+    return null;
+  }
+  
+  const horariosBloque = {
+    1: 8,  // 08:00
+    2: 10, // 10:00
+    3: 12, // 12:00
+    4: 14, // 14:00
+    5: 16  // 16:00
+  };
+  
+  const horaBloque = horariosBloque[bloque];
+  if (!horaBloque) return null;
+  
+  const horaLimite = new Date();
+  horaLimite.setHours(horaBloque, 15, 0, 0); // 15 minutos después del inicio
+  
+  const diferencia = horaLimite - ahora;
+  
+  if (diferencia > 0) {
+    const minutos = Math.floor(diferencia / (1000 * 60));
+    return minutos;
+  }
+  
+  return 0;
+}
+
 const ReservasPage = () => {
   const { user } = useContext(AuthContext);
   const [fechaSeleccionada, setFechaSeleccionada] = useState('');
@@ -75,13 +179,33 @@ const ReservasPage = () => {
 
   // Cargar reservas cuando cambia la fecha
   useEffect(() => {
-    const cargarReservas = async () => {
+    const cargarReservasDeLaSemana = async () => {
       if (fechaSeleccionada) {
         try {
-          const reservas = await obtenerReservasPorFecha(fechaSeleccionada);
-          setReservasDelDia(reservas);
+          // Calcular todas las fechas de la semana
+          const fecha = new Date(fechaSeleccionada + 'T00:00:00');
+          const diaSemana = fecha.getDay();
+          const lunes = new Date(fecha);
+          lunes.setDate(fecha.getDate() - ((diaSemana + 6) % 7));
+          
+          // Obtener reservas para todos los días de la semana (lunes a viernes)
+          const reservasSemana = [];
+          for (let i = 0; i < 5; i++) {
+            const fechaDia = new Date(lunes);
+            fechaDia.setDate(lunes.getDate() + i);
+            const fechaStr = fechaDia.toISOString().split('T')[0];
+            
+            try {
+              const reservasDelDia = await obtenerReservasPorFecha(fechaStr);
+              reservasSemana.push(...reservasDelDia);
+            } catch (error) {
+              console.error(`Error al cargar reservas del día ${fechaStr}:`, error);
+            }
+          }
+          
+          setReservasDelDia(reservasSemana);
         } catch (error) {
-          console.error('Error al cargar reservas del día:', error);
+          console.error('Error al cargar reservas de la semana:', error);
           setReservasDelDia([]);
         }
       } else {
@@ -98,14 +222,51 @@ const ReservasPage = () => {
       }
     };
 
-    cargarReservas();
+    cargarReservasDeLaSemana();
   }, [fechaSeleccionada]);
+
+  // Manejar atajos de teclado para navegación por semanas
+  useEffect(() => {
+    const manejarTeclas = (event) => {
+      // Solo activar atajos si no estamos en un input o modal
+      if (event.target.tagName === 'INPUT' || modalAbierto) return;
+      
+      switch (event.key) {
+        case 'ArrowLeft':
+          event.preventDefault();
+          irASemanaAnterior();
+          break;
+        case 'ArrowRight':
+          event.preventDefault();
+          irASemanaSiguiente();
+          break;
+        case 'Home':
+          event.preventDefault();
+          irASemanaActual();
+          break;
+        default:
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', manejarTeclas);
+    return () => document.removeEventListener('keydown', manejarTeclas);
+  }, [fechaSeleccionada, modalAbierto]);
 
   // Al hacer click en una celda, guardar la info de la celda y abrir el modal
   const handleCeldaClick = async (bloque, dia, subBloque) => {
     try {
-      // Verificar si ya existe una reserva en este slot
-      const existe = await existeReservaEnSlot(fechaSeleccionada, dia, bloque.id, subBloque);
+      // Calcular la fecha exacta basada en el día de la semana seleccionado
+      const fechaExacta = calcularFechaDelDia(fechaSeleccionada, dia);
+      
+      // Verificar si la fecha/hora ya pasó
+      if (esFechaHoraPasada(fechaExacta, bloque.id)) {
+        alert('No puedes hacer reservas en horarios que ya pasaron. Las reservas se pueden hacer hasta 15 minutos después del inicio del bloque.');
+        return;
+      }
+      
+      // Verificar si ya existe una reserva en este slot con la fecha exacta
+      const existe = await existeReservaEnSlot(fechaExacta, dia, bloque.id, subBloque);
       if (existe) {
         alert('Ya existe una reserva en este horario. Selecciona otro slot disponible.');
         return;
@@ -115,10 +276,14 @@ const ReservasPage = () => {
       setFormData({
         ...formData,
         bloque: `${bloque.id} - ${bloque.hora} (${subBloque})`,
-        fecha: fechaSeleccionada,
+        fecha: fechaExacta, // Usar la fecha exacta calculada
         profesor: user?.nombre || '',
         tipoBloque: 'completo',
       });
+      
+      // Actualizar la fecha seleccionada para mostrar la semana correcta
+      setFechaSeleccionada(fechaExacta);
+      
       setModalAbierto(true);
     } catch (error) {
       console.error('Error al verificar disponibilidad:', error);
@@ -143,9 +308,26 @@ const ReservasPage = () => {
       const reservaGuardada = await guardarReserva(datosReserva);
       
       if (reservaGuardada) {
-        // Actualizar la lista de reservas del día
-        const reservasActualizadas = await obtenerReservasPorFecha(fechaSeleccionada);
-        setReservasDelDia(reservasActualizadas);
+        // Recargar reservas de toda la semana
+        const fecha = new Date(fechaSeleccionada + 'T00:00:00');
+        const diaSemana = fecha.getDay();
+        const lunes = new Date(fecha);
+        lunes.setDate(fecha.getDate() - ((diaSemana + 6) % 7));
+        
+        const reservasSemana = [];
+        for (let i = 0; i < 5; i++) {
+          const fechaDia = new Date(lunes);
+          fechaDia.setDate(lunes.getDate() + i);
+          const fechaStr = fechaDia.toISOString().split('T')[0];
+          
+          try {
+            const reservasDelDia = await obtenerReservasPorFecha(fechaStr);
+            reservasSemana.push(...reservasDelDia);
+          } catch (error) {
+            console.error(`Error al recargar reservas del día ${fechaStr}:`, error);
+          }
+        }
+        setReservasDelDia(reservasSemana);
         
         // Actualizar todas las reservas para el debug
         const todasActualizadas = await obtenerReservas();
@@ -193,6 +375,54 @@ La reserva aparecerá automáticamente en el calendario público.`);
     });
   };
 
+  // Funciones para navegación por semanas
+  const irASemanaAnterior = () => {
+    if (!fechaSeleccionada) {
+      // Si no hay fecha seleccionada, usar la fecha actual
+      const hoy = new Date();
+      const fechaStr = hoy.toISOString().split('T')[0];
+      setFechaSeleccionada(fechaStr);
+      return;
+    }
+    
+    const fecha = new Date(fechaSeleccionada + 'T00:00:00');
+    fecha.setDate(fecha.getDate() - 7); // Retroceder 7 días
+    
+    // No permitir ir más atrás de la semana actual
+    const hoy = new Date();
+    const inicioSemanaActual = new Date(hoy);
+    inicioSemanaActual.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7));
+    inicioSemanaActual.setHours(0, 0, 0, 0);
+    
+    if (fecha >= inicioSemanaActual) {
+      const nuevaFecha = fecha.toISOString().split('T')[0];
+      setFechaSeleccionada(nuevaFecha);
+    } else {
+      alert('No puedes navegar a semanas anteriores a la actual.');
+    }
+  };
+
+  const irASemanaActual = () => {
+    const hoy = new Date();
+    const fechaStr = hoy.toISOString().split('T')[0];
+    setFechaSeleccionada(fechaStr);
+  };
+
+  const irASemanaSiguiente = () => {
+    if (!fechaSeleccionada) {
+      // Si no hay fecha seleccionada, usar la fecha actual
+      const hoy = new Date();
+      const fechaStr = hoy.toISOString().split('T')[0];
+      setFechaSeleccionada(fechaStr);
+      return;
+    }
+    
+    const fecha = new Date(fechaSeleccionada + 'T00:00:00');
+    fecha.setDate(fecha.getDate() + 7); // Avanzar 7 días
+    const nuevaFecha = fecha.toISOString().split('T')[0];
+    setFechaSeleccionada(nuevaFecha);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <div className="max-w-6xl mx-auto p-2 sm:p-3 lg:p-4">
@@ -206,11 +436,36 @@ La reserva aparecerá automáticamente en el calendario público.`);
           </p>
         </div>
 
-        {/* Selector de fecha */}
-        <div className="bg-white rounded-lg shadow-md p-3 mb-3 border border-gray-100">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+        {/* Selector de fecha con navegación por semanas */}
+        <div className="bg-white rounded-lg shadow-md p-4 mb-3 border border-gray-100">
+          {/* Navegación por semanas */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-3">
+            <button
+              onClick={irASemanaAnterior}
+              className="w-full sm:w-auto flex items-center justify-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors duration-200 text-sm font-medium"
+            >
+              ⬅️ <span className="hidden sm:inline">Semana </span>Anterior
+            </button>
+            
+            <button
+              onClick={irASemanaActual}
+              className="w-full sm:w-auto flex items-center justify-center gap-1 px-3 py-2 bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors duration-200 text-sm font-medium"
+            >
+              📅 <span className="hidden sm:inline">Semana </span>Actual
+            </button>
+            
+            <button
+              onClick={irASemanaSiguiente}
+              className="w-full sm:w-auto flex items-center justify-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors duration-200 text-sm font-medium"
+            >
+              <span className="hidden sm:inline">Semana </span>Siguiente ➡️
+            </button>
+          </div>
+
+          {/* Selector de fecha manual */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2 border-t border-gray-200">
             <label htmlFor="fecha" className="text-sm font-semibold text-gray-700">
-              Selecciona una fecha:
+              O selecciona una fecha específica:
             </label>
             <input 
               type="date" 
@@ -225,97 +480,148 @@ La reserva aparecerá automáticamente en el calendario público.`);
         </div>
 
         {/* Info de la semana seleccionada */}
-        {semanaInfo && (
-          <div className="bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg border border-blue-200 p-2 mb-3 text-center animate-fade-in">
-            <div className="text-blue-700 font-bold text-sm">
-              Semana {semanaInfo.semana}
+        {fechaSeleccionada ? (
+          semanaInfo && (
+            <div className="bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg border border-blue-200 p-3 mb-3 text-center animate-fade-in">
+              <div className="text-blue-700 font-bold text-lg mb-1">
+                📅 Semana {semanaInfo.semana} del año
+              </div>
+              <div className="text-blue-600 text-sm">
+                Del {semanaInfo.lunes} al {semanaInfo.viernes}
+              </div>
+              <div className="text-blue-500 text-xs mt-1">
+                Haz clic en cualquier celda disponible para crear una reserva
+              </div>
+              <div className="text-blue-400 text-xs mt-1">
+                💡 Atajos: ← → para cambiar semana | Home para semana actual
+              </div>
             </div>
-            <div className="text-blue-600 text-xs">
-              {semanaInfo.lunes} al {semanaInfo.viernes}
+          )
+        ) : (
+          <div className="bg-gradient-to-r from-yellow-100 to-orange-100 rounded-lg border border-orange-200 p-3 mb-3 text-center">
+            <div className="text-orange-700 font-bold text-sm mb-1">
+              🗓️ Selecciona una fecha para comenzar
+            </div>
+            <div className="text-orange-600 text-xs">
+              Usa los botones de navegación o selecciona una fecha específica
             </div>
           </div>
         )}
 
         {/* Tabla de horarios */}
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100 h-96">
-          <div className="overflow-auto h-full">
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
+          <div className="overflow-auto">
             <table className="w-full border-collapse">
               <thead className="sticky top-0">
-                <tr className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-                  <th className="px-2 py-2 text-center font-semibold text-xs uppercase tracking-wider border-r border-blue-700">
-                    Horas/Bloq
+                <tr className="bg-blue-600 text-white">
+                  <th className="px-1 py-2 text-center font-medium text-xs border-r-2 border-blue-800 w-20">
+                    Bloque
                   </th>
-                  {diasSemana.map(dia => (
-                    <th key={dia} className="px-2 py-2 text-center font-semibold text-xs uppercase tracking-wider border-r border-blue-700 last:border-r-0">
-                      {dia}
+                  {diasSemana.map((dia, index) => (
+                    <th key={dia} className={`px-2 py-2 text-center font-medium text-xs ${
+                      index === diasSemana.length - 1 ? '' : 'border-r-2 border-blue-800'
+                    }`}>
+                      {dia.substring(0, 3)}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white">
                 {bloques.map(bloque => (
                   [0, 1].map(subIdx => (
-                    <tr key={`${bloque.id}-${subIdx}`} className="hover:bg-gray-50 transition-colors duration-200">
+                    <tr 
+                      key={`${bloque.id}-${subIdx}`} 
+                      className={`hover:bg-gray-50 transition-colors duration-200 ${
+                        subIdx === 1 ? 'border-b-2 border-gray-800' : 'border-b border-gray-300'
+                      }`}
+                    >
                       {subIdx === 0 && (
                         <td
                           rowSpan={2}
-                          className="px-2 py-3 text-center bg-gradient-to-b from-gray-50 to-gray-100 border-r border-gray-200 font-medium text-gray-700"
+                          className="px-1 py-2 text-center bg-gray-50 border-r-2 border-gray-800 font-medium text-gray-700 w-20"
                         >
-                          <div className="text-lg font-bold text-blue-600 mb-1">
+                          <div className="text-sm font-bold text-blue-600">
                             {bloque.id}
                           </div>
-                          <div className="text-xs text-gray-500 font-medium">
-                            {bloque.hora}
+                          <div className="text-xs text-gray-400">
+                            {bloque.hora.split(' - ')[0]}
                           </div>
                         </td>
                       )}
-                      {diasSemana.map(dia => {
+                      {diasSemana.map((dia, diaIndex) => {
+                        // Calcular la fecha exacta para este día de la semana
+                        const fechaExactaDia = calcularFechaDelDia(fechaSeleccionada, dia);
+                        
                         const reservaEnSlot = reservasDelDia.find(r =>
+                          r.fecha === fechaExactaDia &&
                           r.dia === dia &&
                           String(r.bloque) === String(bloque.id) &&
                           r.subBloque === subBloques[subIdx]
                         );
                         
                         const existeReserva = !!reservaEnSlot;
+                        const esPasado = esFechaHoraPasada(fechaExactaDia, bloque.id);
+                        const esClickeable = !existeReserva && !esPasado && fechaSeleccionada;
+                        
+                        // Verificar si está en tiempo límite (hoy y quedan menos de 30 minutos)
+                        const tiempoRestante = getTiempoRestanteParaReservar(fechaExactaDia, bloque.id);
+                        const esHoy = new Date(fechaExactaDia + 'T00:00:00').toDateString() === new Date().toDateString();
+                        const esTiempoLimite = esHoy && tiempoRestante !== null && tiempoRestante <= 30 && tiempoRestante > 0;
+                        
+                        // Determinar línea vertical según la posición del día
+                        const bordeVertical = diaIndex === diasSemana.length - 1 ? '' : 'border-r-2 border-gray-800';
+                        
+                        // Determinar estilo según el estado
+                        let estiloClase = `px-2 py-1 text-center ${bordeVertical} transition-all duration-200 min-h-[35px] `;
+                        if (existeReserva) {
+                          estiloClase += 'bg-red-50 cursor-not-allowed';
+                        } else if (esPasado) {
+                          estiloClase += 'bg-gray-100 cursor-not-allowed opacity-60';
+                        } else if (esTiempoLimite) {
+                          estiloClase += 'bg-orange-50 cursor-pointer hover:bg-orange-100 hover:shadow-sm';
+                        } else if (fechaSeleccionada) {
+                          estiloClase += 'bg-green-50 cursor-pointer hover:bg-green-100 hover:shadow-sm';
+                        } else {
+                          estiloClase += 'bg-gray-50 cursor-not-allowed';
+                        }
                         
                         return (
                           <td
                             key={`${bloque.id}-${dia}-${subIdx}`}
-                            onClick={() => !existeReserva && fechaSeleccionada && handleCeldaClick(bloque, dia, subBloques[subIdx])}
-                            className={`px-2 py-2 text-center border-r border-gray-200 last:border-r-0 transition-all duration-200 min-h-[40px] ${
-                              existeReserva 
-                                ? 'bg-gradient-to-br from-red-100 to-pink-100 cursor-not-allowed' 
-                                : fechaSeleccionada 
-                                  ? 'bg-gradient-to-br from-green-50 to-emerald-50 cursor-pointer hover:from-green-100 hover:to-emerald-100 hover:shadow-md' 
-                                  : 'bg-gray-50 cursor-not-allowed'
-                            }`}
+                            onClick={() => esClickeable && handleCeldaClick(bloque, dia, subBloques[subIdx])}
+                            className={estiloClase}
+                            title={existeReserva ? `Reservado por: ${reservaEnSlot?.profesor || 'N/A'}\nCurso: ${reservaEnSlot?.curso || 'N/A'}\nAsignatura: ${reservaEnSlot?.asignatura || 'N/A'}` : esPasado ? 'Horario pasado' : fechaSeleccionada ? 'Clic para reservar' : 'Selecciona una fecha primero'}
                           >
                             {existeReserva ? (
                               <div className="space-y-0.5">
-                                <div className="font-bold text-red-700 text-xs">Reservado</div>
-                                {reservaEnSlot && (
-                                  <>
-                                    <div className="text-xs text-red-600">
-                                      {reservaEnSlot.curso}
-                                    </div>
-                                    <div className="text-xs text-red-500">
-                                      {reservaEnSlot.asignatura}
-                                    </div>
-                                    <div className="text-xs text-red-400">
-                                      {reservaEnSlot.profesor}
-                                    </div>
-                                  </>
-                                )}
-                              </div>
-                            ) : (
-                              fechaSeleccionada && (
-                                <div className="flex items-center justify-center h-full">
-                                  <span className="text-green-600 font-medium text-xs px-1 py-0.5 bg-green-100 rounded">
-                                    Disponible
-                                  </span>
+                                <div className="text-xs text-red-700 font-medium truncate">
+                                  {reservaEnSlot?.curso || 'Ocupado'}
                                 </div>
-                              )
-                            )}
+                              </div>
+                            ) : esPasado ? (
+                              <div className="flex items-center justify-center h-full">
+                                <span className="text-gray-500 text-xs">Pasado</span>
+                              </div>
+                            ) : fechaSeleccionada ? (
+                              (() => {
+                                const tiempoRestante = getTiempoRestanteParaReservar(fechaExactaDia, bloque.id);
+                                const esHoy = new Date(fechaExactaDia + 'T00:00:00').toDateString() === new Date().toDateString();
+                                
+                                if (esHoy && tiempoRestante !== null && tiempoRestante <= 30) {
+                                  return (
+                                    <div className="flex flex-col items-center justify-center h-full">
+                                      {tiempoRestante > 0 && (
+                                        <span className="text-orange-600 text-xs font-bold">
+                                          {tiempoRestante}m
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                }
+                                
+                                return null; // Celda vacía para horarios normales disponibles
+                              })()
+                            ) : null}
                           </td>
                         );
                       })}
@@ -324,6 +630,28 @@ La reserva aparecerá automáticamente en el calendario público.`);
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+
+        {/* Leyenda de estados */}
+        <div className="mt-3 bg-white rounded-lg shadow-sm p-2 border border-gray-100">
+          <div className="flex flex-wrap justify-center gap-4 text-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-50 border border-green-200 rounded"></div>
+              <span className="text-gray-600">Libre</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-orange-50 border border-orange-200 rounded"></div>
+              <span className="text-gray-600">Urgente</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-red-50 border border-red-200 rounded"></div>
+              <span className="text-gray-600">Ocupado</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-100 border border-gray-300 rounded"></div>
+              <span className="text-gray-600">Pasado</span>
+            </div>
           </div>
         </div>
 
