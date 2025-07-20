@@ -333,17 +333,14 @@ const ReservasPage = () => {
         const todasActualizadas = await obtenerReservas();
         setTodasLasReservas(todasActualizadas);
         
-        // Mostrar mensaje de éxito
-        alert(`¡Reserva creada exitosamente! 
-        
-Detalles:
-- Curso: ${formData.curso}
-- Asignatura: ${formData.asignatura}
-- Fecha: ${formData.fecha}
-- Bloque: ${formData.bloque}
-- Profesor: ${formData.profesor}
-        
-La reserva aparecerá automáticamente en el calendario público.`);
+        // Reserva creada exitosamente (sin mostrar alert)
+        console.log('✅ Reserva creada exitosamente:', {
+          curso: formData.curso,
+          asignatura: formData.asignatura,
+          fecha: formData.fecha,
+          bloque: formData.bloque,
+          profesor: formData.profesor
+        });
       } else {
         alert('Error al guardar la reserva. Inténtalo de nuevo.');
       }

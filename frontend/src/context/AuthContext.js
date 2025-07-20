@@ -7,7 +7,7 @@ export const AuthContext = createContext()
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true) // Cambiar a true para mostrar loading inicial
 
   useEffect(() => {
     console.log('🔍 DEBUG AUTH - useEffect iniciado')
@@ -17,18 +17,29 @@ export const AuthProvider = ({ children }) => {
     const authToken = localStorage.getItem('auth_token')
     
     if (savedUserData && authToken) {
-      console.log('🔍 DEBUG AUTH - Restaurando sesión desde localStorage')
+      console.log('🔍 DEBUG AUTH - Datos encontrados en localStorage, verificando...')
       try {
         const userData = JSON.parse(savedUserData)
-        setUser(userData)
-        console.log('✅ DEBUG AUTH - Sesión restaurada:', userData)
+        
+        // Verificar que los datos sean válidos y tengan rol
+        if (userData && userData.rol && userData.email) {
+          setUser(userData)
+          console.log('✅ DEBUG AUTH - Sesión restaurada:', userData)
+        } else {
+          console.log('⚠️ DEBUG AUTH - Datos de sesión inválidos, limpiando localStorage')
+          localStorage.removeItem('user_data')
+          localStorage.removeItem('auth_token')
+        }
       } catch (error) {
         console.log('⚠️ DEBUG AUTH - Error parseando datos guardados, limpiando localStorage')
         localStorage.removeItem('user_data')
         localStorage.removeItem('auth_token')
       }
+    } else {
+      console.log('🔍 DEBUG AUTH - No hay sesión guardada')
     }
     
+    setLoading(false) // Terminar loading después de verificar
     console.log('🔍 DEBUG AUTH - Inicialización completada')
   }, [])
 

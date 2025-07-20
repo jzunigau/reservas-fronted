@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
+import DefaultRedirect from './components/DefaultRedirect';
 import LoginPage from './pages/LoginPage';
 import ReservasPage from './pages/ReservasPage';
 import AdminPage from './pages/AdminPage';
@@ -56,7 +57,7 @@ function App() {
               />
               
               {/* Ruta por defecto */}
-              <Route path="/" element={<Navigate to="/reservas" replace />} />
+              <Route path="/" element={<DefaultRedirect />} />
             </Routes>
           </main>
         </div>
