@@ -113,12 +113,50 @@ const DatabaseDebugPage = () => {
     }
   };
 
+  const testVariablesEntorno = () => {
+    setLoading(false);
+    setResultado('🔍 Verificando variables de entorno...\n');
+    
+    setResultado(prev => prev + `📋 Variables de entorno actuales:\n`);
+    setResultado(prev => prev + `   REACT_APP_SUPABASE_URL: ${process.env.REACT_APP_SUPABASE_URL || 'NO DEFINIDA'}\n`);
+    setResultado(prev => prev + `   REACT_APP_SUPABASE_ANON_KEY: ${process.env.REACT_APP_SUPABASE_ANON_KEY ? 'DEFINIDA' : 'NO DEFINIDA'}\n`);
+    setResultado(prev => prev + `   NODE_ENV: ${process.env.NODE_ENV}\n\n`);
+    
+    // Mostrar configuración que se está usando
+    const config = {
+      url: process.env.REACT_APP_SUPABASE_URL || 'https://trnyhqywpioomkdhgugb.supabase.co',
+      keyDefined: !!(process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...')
+    };
+    
+    setResultado(prev => prev + `🔧 Configuración efectiva:\n`);
+    setResultado(prev => prev + `   URL final: ${config.url}\n`);
+    setResultado(prev => prev + `   Key disponible: ${config.keyDefined}\n\n`);
+    
+    // Comparar URLs
+    const urlCorrecta = 'https://trnyhqywpioomkdhgugb.supabase.co';
+    const urlUsada = config.url;
+    
+    if (urlUsada === urlCorrecta) {
+      setResultado(prev => prev + `✅ URL correcta\n`);
+    } else {
+      setResultado(prev => prev + `❌ URL INCORRECTA!\n`);
+      setResultado(prev => prev + `   Esperada: ${urlCorrecta}\n`);
+      setResultado(prev => prev + `   Actual:   ${urlUsada}\n\n`);
+      setResultado(prev => prev + `🛠️ SOLUCIÓN:\n`);
+      setResultado(prev => prev + `   1. Ve a Vercel Dashboard\n`);
+      setResultado(prev => prev + `   2. Settings → Environment Variables\n`);
+      setResultado(prev => prev + `   3. Edita REACT_APP_SUPABASE_URL\n`);
+      setResultado(prev => prev + `   4. Cambia a: ${urlCorrecta}\n`);
+      setResultado(prev => prev + `   5. Redeploy la aplicación\n`);
+    }
+  };
+
   const testUrlSupabase = async () => {
     setLoading(true);
     setResultado('🔍 Probando URL de Supabase directamente...\n');
     
     try {
-      const supabaseUrl = 'https://trnyhqywpioomkdhgugb.supabase.co';
+      const supabaseUrl = 'https://trnyhqywpioomkdhgugb.supabase.co';  // URL CORREGIDA
       const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybnlocXl3cGlvb21rZGhndWdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0NjQ3MTAsImV4cCI6MjA2ODA0MDcxMH0.CxYnD2n4FH37lESyI2Wn3X4En9vNv9yMjzE_GHf1gk4';
       
       setResultado(prev => prev + `🔍 URL: ${supabaseUrl}\n`);
@@ -241,6 +279,22 @@ const DatabaseDebugPage = () => {
       <p>Usuario actual: {user?.email || 'No logueado'}</p>
       
       <div style={{ marginBottom: '1rem' }}>
+        <button 
+          onClick={testVariablesEntorno} 
+          disabled={loading}
+          style={{
+            padding: '0.5rem 1rem',
+            marginRight: '1rem',
+            backgroundColor: '#ff6b35',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: loading ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {loading ? 'Verificando...' : '🔍 Variables Entorno'}
+        </button>
+        
         <button 
           onClick={testConexionSupabase} 
           disabled={loading}
