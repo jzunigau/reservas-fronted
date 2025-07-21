@@ -153,28 +153,32 @@ export const guardarReserva = async (nuevaReserva) => {
       return guardarReservaLocalStorage(nuevaReserva)
     }
 
-    // Buscar el laboratorio por nombre
-    const { data: labData, error: labError } = await supabase
-      .from('laboratorios')
-      .select('id')
-      .eq('nombre', nuevaReserva.laboratorio)
-      .single()
-
-
+    // Usar el laboratorio_id directamente si está disponible
     let laboratorio_id
-    if (labError || !labData) {
-      // Si no encuentra el laboratorio, usar el primero disponible
-      const { data: firstLab } = await supabase
+    if (nuevaReserva.laboratorio_id) {
+      laboratorio_id = nuevaReserva.laboratorio_id
+    } else {
+      // Buscar el laboratorio por nombre (fallback para compatibilidad)
+      const { data: labData, error: labError } = await supabase
         .from('laboratorios')
         .select('id')
-        .eq('activo', true)
-        .limit(1)
+        .eq('nombre', nuevaReserva.laboratorio)
         .single()
-      
-      const finalLabData = firstLab || { id: 1 }
-      laboratorio_id = finalLabData.id
-    } else {
-      laboratorio_id = labData.id
+
+      if (labError || !labData) {
+        // Si no encuentra el laboratorio, usar el primero disponible
+        const { data: firstLab } = await supabase
+          .from('laboratorios')
+          .select('id')
+          .eq('activo', true)
+          .limit(1)
+          .single()
+        
+        const finalLabData = firstLab || { id: 1 }
+        laboratorio_id = finalLabData.id
+      } else {
+        laboratorio_id = labData.id
+      }
     }
 
     // Preparar datos para inserción
@@ -308,18 +312,26 @@ export const obtenerLaboratorios = async () => {
 }
 
 // Formatear datos de la reserva desde el formulario
-export const formatearReservaDesdeFormulario = (formData, reservaSeleccionada) => {
+export const formatearReservaDesdeFormulario = async (formData, reservaSeleccionada) => {
   
-  // Determinar el laboratorio basado en la asignatura (simulación)
-  const laboratoriosPorAsignatura = {
-    'Matemáticas': 'Lab. Informática 1',
-    'Física': 'Lab. Física',
-    'Química': 'Lab. Química',
-    'Biología': 'Lab. Biología',
-    'Informática': 'Lab. Informática 2',
-    'Tecnología': 'Lab. Tecnología',
-    'Ciencias Naturales': 'Lab. Ciencias'
-  };
+  // Obtener el nombre del laboratorio basado en laboratorio_id
+  let laboratorioNombre = 'Lab. General';
+  
+  if (formData.laboratorio_id) {
+    try {
+      const { data: labData, error } = await supabase
+        .from('laboratorios')
+        .select('nombre')
+        .eq('id', formData.laboratorio_id)
+        .single();
+      
+      if (!error && labData) {
+        laboratorioNombre = labData.nombre;
+      }
+    } catch (error) {
+      console.error('Error al obtener nombre del laboratorio:', error);
+    }
+  }
 
   // Determinar sub_bloque y tipo_bloque basado en tipoBloque
   let subBloque = '1° hora'; // Por defecto
@@ -342,7 +354,8 @@ export const formatearReservaDesdeFormulario = (formData, reservaSeleccionada) =
     curso: formData.curso,
     asignatura: formData.asignatura,
     profesor: formData.profesor,
-    laboratorio: laboratoriosPorAsignatura[formData.asignatura] || 'Lab. General',
+    laboratorio: laboratorioNombre,
+    laboratorio_id: formData.laboratorio_id, // Agregar laboratorio_id
     observaciones: formData.observaciones || null
   };
   

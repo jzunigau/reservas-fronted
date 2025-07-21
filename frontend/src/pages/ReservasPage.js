@@ -5,7 +5,8 @@ import {
   guardarReserva, 
   existeReservaEnSlot, 
   formatearReservaDesdeFormulario,
-  obtenerReservasPorFecha 
+  obtenerReservasPorFecha,
+  obtenerLaboratorios
 } from '../utils/reservasService';
 import { diagnosticarReservas } from '../utils/diagnosticoReservas';
 
@@ -166,9 +167,11 @@ const ReservasPage = () => {
     profesor: user?.nombre || '',
     fecha: '',
     tipoBloque: 'completo',
+    laboratorio_id: '',
   });
   const [reservasDelDia, setReservasDelDia] = useState([]);
   const [todasLasReservas, setTodasLasReservas] = useState([]);
+  const [laboratorios, setLaboratorios] = useState([]);
   
   // Estados faltantes que se usan en las funciones
   const [reservas, setReservas] = useState([]);
@@ -230,6 +233,28 @@ const ReservasPage = () => {
     cargarReservasDeLaSemana();
   }, [fechaSeleccionada]);
 
+  // Cargar laboratorios al montar el componente
+  useEffect(() => {
+    const cargarLaboratorios = async () => {
+      try {
+        const labs = await obtenerLaboratorios();
+        setLaboratorios(labs);
+        // Si hay laboratorios y no se ha seleccionado uno, seleccionar el primero
+        if (labs.length > 0 && !formData.laboratorio_id) {
+          setFormData(prev => ({
+            ...prev,
+            laboratorio_id: labs[0].id
+          }));
+        }
+      } catch (error) {
+        console.error('Error al cargar laboratorios:', error);
+        setLaboratorios([]);
+      }
+    };
+
+    cargarLaboratorios();
+  }, []);
+
   // Manejar atajos de teclado para navegación por semanas
   useEffect(() => {
     const manejarTeclas = (event) => {
@@ -283,6 +308,7 @@ const ReservasPage = () => {
         fecha: fechaExacta, // Usar la fecha exacta calculada
         profesor: user?.nombre || '',
         tipoBloque: 'completo',
+        laboratorio_id: formData.laboratorio_id || (laboratorios.length > 0 ? laboratorios[0].id : ''),
       });
       
       // Actualizar la fecha seleccionada para mostrar la semana correcta
@@ -314,7 +340,7 @@ const ReservasPage = () => {
         fecha: fechaSeleccionada
       }
       
-      const datosReserva = formatearReservaDesdeFormulario(datosReservaCorregidos, reservaSeleccionada);
+      const datosReserva = await formatearReservaDesdeFormulario(datosReservaCorregidos, reservaSeleccionada);
       
       const reservaGuardada = await guardarReserva(datosReserva);
       
@@ -856,6 +882,26 @@ const ReservasPage = () => {
                       className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-all duration-200"
                       placeholder="Ej: Matemáticas"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">
+                      Laboratorio:
+                    </label>
+                    <select
+                      name="laboratorio_id"
+                      value={formData.laboratorio_id}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-all duration-200"
+                    >
+                      <option value="">Selecciona un laboratorio</option>
+                      {laboratorios.map(lab => (
+                        <option key={lab.id} value={lab.id}>
+                          {lab.nombre}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
