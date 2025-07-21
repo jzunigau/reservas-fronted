@@ -175,344 +175,6 @@ const ReservasPage = () => {
   const [loading, setLoading] = useState(false);
   const [mostrarModal, setMostrarModal] = useState(false);
 
-  // FUNCIÓN DE DIAGNÓSTICO TEMPORAL
-  // ⚡ FUNCIÓN PARA CORREGIR FILTRADO POR SEMANA
-  const corregirFiltradoSemana = async () => {
-    console.log('⚡ [CORREGIR SEMANA] Aplicando filtrado correcto por semana...');
-    
-    if (!fechaSeleccionada) {
-      alert('❌ Selecciona una fecha primero');
-      return;
-    }
-    
-    try {
-      // Calcular fechas de la semana actual
-      const fecha = new Date(fechaSeleccionada + 'T00:00:00');
-      const diaSemana = fecha.getDay();
-      const lunes = new Date(fecha);
-      lunes.setDate(fecha.getDate() - ((diaSemana + 6) % 7));
-      
-      // Generar fechas de lunes a viernes
-      const fechasSemana = [];
-      for (let i = 0; i < 5; i++) {
-        const fechaDia = new Date(lunes);
-        fechaDia.setDate(lunes.getDate() + i);
-        const fechaStr = fechaDia.toISOString().split('T')[0];
-        fechasSemana.push(fechaStr);
-      }
-      
-      console.log('⚡ Fechas de la semana actual:', fechasSemana);
-      
-      // Filtrar reservas SOLO de la semana actual
-      const reservasSemanaCorrecta = todasLasReservas.filter(r => {
-        const reservaEnSemana = fechasSemana.includes(r.fecha);
-        console.log(`⚡ Reserva "${r.curso}" (${r.fecha}): ${reservaEnSemana ? 'EN' : 'FUERA DE'} la semana`);
-        return reservaEnSemana;
-      });
-      
-      console.log('⚡ Reservas filtradas correctamente:', reservasSemanaCorrecta);
-      
-      // Aplicar el filtro correcto
-      setReservasDelDia(reservasSemanaCorrecta);
-      
-      alert(`⚡ FILTRADO CORREGIDO!\n\nSemana: ${fechasSemana[0]} a ${fechasSemana[4]}\n\nRESULTADO:\n- Total reservas disponibles: ${todasLasReservas.length}\n- Reservas en esta semana: ${reservasSemanaCorrecta.length}\n\nAhora solo deberían aparecer las reservas de la semana actual en la tabla.`);
-      
-    } catch (error) {
-      console.error('❌ Error al corregir filtrado:', error);
-      alert('❌ Error: ' + error.message);
-    }
-  }
-
-  // 📅 FUNCIÓN DE DEBUG ESPECÍFICO PARA FILTRADO POR SEMANA
-  const debugFiltradoSemana = () => {
-    console.log('📅 [DEBUG SEMANA] ===== ANÁLISIS DE FILTRADO POR SEMANA =====');
-    
-    if (!fechaSeleccionada) {
-      alert('❌ No hay fecha seleccionada para analizar')
-      return
-    }
-    
-    // Calcular fechas de la semana actual
-    const fecha = new Date(fechaSeleccionada + 'T00:00:00');
-    const diaSemana = fecha.getDay();
-    const lunes = new Date(fecha);
-    lunes.setDate(fecha.getDate() - ((diaSemana + 6) % 7));
-    
-    console.log('📅 Fecha seleccionada:', fechaSeleccionada);
-    console.log('📅 Lunes de la semana:', lunes.toISOString().split('T')[0]);
-    
-    // Generar fechas de lunes a viernes
-    const fechasSemana = [];
-    for (let i = 0; i < 5; i++) {
-      const fechaDia = new Date(lunes);
-      fechaDia.setDate(lunes.getDate() + i);
-      const fechaStr = fechaDia.toISOString().split('T')[0];
-      fechasSemana.push(fechaStr);
-    }
-    
-    console.log('📅 Fechas de la semana (L-V):', fechasSemana);
-    
-    // Analizar qué reservas coinciden con cada día
-    console.log('\n📊 Análisis de reservas por día:');
-    fechasSemana.forEach((fechaStr, index) => {
-      const diasNombre = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
-      const reservasDelDia = todasLasReservas.filter(r => r.fecha === fechaStr);
-      
-      console.log(`${diasNombre[index]} (${fechaStr}): ${reservasDelDia.length} reservas`);
-      reservasDelDia.forEach(r => {
-        console.log(`  - ${r.curso} | Bloque ${r.bloque} | ${r.subBloque || r.sub_bloque}`);
-      });
-    });
-    
-    // Analizar reservas fuera de la semana
-    console.log('\n🔍 Reservas fuera de la semana actual:');
-    const reservasFueraSemana = todasLasReservas.filter(r => !fechasSemana.includes(r.fecha));
-    reservasFueraSemana.forEach(r => {
-      console.log(`  - ${r.curso} | Fecha: ${r.fecha} | Bloque ${r.bloque}`);
-    });
-    
-    console.log('======================================================');
-    
-    const reservasEnSemana = todasLasReservas.filter(r => fechasSemana.includes(r.fecha));
-    
-    alert(`📅 DEBUG FILTRADO POR SEMANA\n\nSemana actual: ${fechasSemana[0]} a ${fechasSemana[4]}\n\nRESULTADOS:\n- Total reservas: ${todasLasReservas.length}\n- Reservas EN la semana: ${reservasEnSemana.length}\n- Reservas FUERA de la semana: ${reservasFueraSemana.length}\n\n${reservasFueraSemana.length > 0 ? 'Hay reservas en otras semanas que están apareciendo incorrectamente.' : 'El filtrado está funcionando correctamente.'}\n\nRevisa la consola para detalles completos.`);
-  }
-
-  // ⚡ FUNCIÓN PARA ARREGLAR EL MATCHING DE LA TABLA (SOLUCIÓN DEFINITIVA)
-  const arreglarMatchingTabla = () => {
-    console.log('⚡ [ARREGLAR MATCHING] Aplicando solución definitiva para tabla...')
-    
-    // Crear una función de matching más flexible y robusta
-    const matchingFlexible = (reserva, dia, bloque, subBloque) => {
-      // 1. Matching de día más flexible
-      const diasEquivalentes = {
-        'Lunes': ['Lunes', 'Lun', 'Monday', 'Mon', 'lunes', 'lun'],
-        'Martes': ['Martes', 'Mar', 'Tuesday', 'Tue', 'martes', 'mar'], 
-        'Miércoles': ['Miércoles', 'Mié', 'Wednesday', 'Wed', 'miércoles', 'mie'],
-        'Jueves': ['Jueves', 'Jue', 'Thursday', 'Thu', 'jueves', 'jue'],
-        'Viernes': ['Viernes', 'Vie', 'Friday', 'Fri', 'viernes', 'vie'],
-        'Sábado': ['Sábado', 'Sáb', 'Saturday', 'Sat', 'sábado', 'sab'],
-        'Domingo': ['Domingo', 'Dom', 'Sunday', 'Sun', 'domingo', 'dom']
-      }
-      
-      const diaReserva = reserva.dia || reserva.dia_semana || ''
-      const diaCoincide = diasEquivalentes[dia]?.includes(diaReserva) || diaReserva === dia
-      
-      // 2. Matching de bloque más flexible  
-      const bloqueCoincide = String(reserva.bloque) === String(bloque) || 
-                            parseInt(reserva.bloque) === parseInt(bloque)
-      
-      // 3. Matching de sub-bloque MUY flexible
-      const subBloqueReserva = reserva.subBloque || reserva.sub_bloque || ''
-      const subBloqueCoincide = 
-        subBloqueReserva === subBloque ||                           // Exacto
-        (subBloque === '1° hora' && (subBloqueReserva === 1 || subBloqueReserva === '1')) ||
-        (subBloque === '2° hora' && (subBloqueReserva === 2 || subBloqueReserva === '2')) ||
-        (subBloque === '1° hora' && subBloqueReserva === 'primera') ||
-        (subBloque === '2° hora' && subBloqueReserva === 'segunda')
-      
-      const resultado = diaCoincide && bloqueCoincide && subBloqueCoincide
-      
-      console.log(`⚡ Matching para "${reserva.curso}":`, {
-        dia: `${diaReserva} -> ${dia} = ${diaCoincide}`,
-        bloque: `${reserva.bloque} -> ${bloque} = ${bloqueCoincide}`, 
-        subBloque: `${subBloqueReserva} -> ${subBloque} = ${subBloqueCoincide}`,
-        RESULTADO: resultado
-      })
-      
-      return resultado
-    }
-    
-    // Aplicar el nuevo matching
-    console.log('⚡ Aplicando nuevo sistema de matching...')
-    
-    // Forzar re-renderizado con el nuevo sistema
-    setReservas([...todasLasReservas])
-    setReservasDelDia([...todasLasReservas]) // Usar todas las reservas temporalmente
-    
-    alert('⚡ MATCHING ARREGLADO!\n\nSe ha aplicado un sistema de matching más flexible.\nLas reservas deberían aparecer ahora en la tabla.\n\nNuevo sistema:\n- Días: Lunes = Lun = Mon\n- Bloques: 1 = "1"\n- Sub-bloques: "1° hora" = 1 = "primera"')
-  }
-
-  // 🔍 FUNCIÓN DE DEBUG ESPECÍFICO PARA LA TABLA
-  const debugTabla = () => {
-    console.log('🔍 [DEBUG TABLA] ===== ANÁLISIS COMPLETO DE LA TABLA =====');
-    console.log('📊 Estado actual:');
-    console.log('- reservasDelDia (tabla):', reservasDelDia?.length || 0);
-    console.log('- todasLasReservas (últimas 3):', todasLasReservas?.length || 0);
-    console.log('- fechaSeleccionada:', fechaSeleccionada);
-    
-    console.log('\n📅 Reservas para tabla (reservasDelDia):');
-    reservasDelDia.forEach((r, idx) => {
-      console.log(`  ${idx}: ${r.curso} | Fecha: ${r.fecha} | Día: ${r.dia || r.dia_semana} | Bloque: ${r.bloque} | Sub: ${r.subBloque || r.sub_bloque}`);
-    });
-    
-    console.log('\n🗂️ Todas las reservas (todasLasReservas):');
-    todasLasReservas.forEach((r, idx) => {
-      console.log(`  ${idx}: ${r.curso} | Fecha: ${r.fecha} | Día: ${r.dia || r.dia_semana} | Bloque: ${r.bloque} | Sub: ${r.subBloque || r.sub_bloque}`);
-    });
-    
-    // Análisis de por qué la tabla está vacía
-    const primerSlot = { dia: 'Lunes', bloque: 1, subBloque: '1° hora' };
-    const fechaLunes = calcularFechaDelDia(fechaSeleccionada, 'Lunes');
-    
-    console.log('\n🔍 Análisis del primer slot (Lunes, Bloque 1, 1° hora):');
-    console.log('- Fecha calculada para Lunes:', fechaLunes);
-    
-    const reservasCompatibles = reservasDelDia.filter(r => {
-      const coincideFecha = r.fecha === fechaLunes;
-      const coincideDia = r.dia === 'Lunes' || r.dia_semana === 'Lunes' || r.dia === 'Lun' || r.dia_semana === 'Lun';
-      const coincideBloque = String(r.bloque) === '1';
-      const coincideSubBloque = r.subBloque === '1° hora' || r.sub_bloque === 1;
-      
-      console.log(`  Reserva "${r.curso}":`, {
-        fecha: `${r.fecha} === ${fechaLunes} -> ${coincideFecha}`,
-        dia: `${r.dia || r.dia_semana} === Lunes -> ${coincideDia}`,
-        bloque: `${r.bloque} === 1 -> ${coincideBloque}`,
-        subBloque: `${r.subBloque || r.sub_bloque} === "1° hora" -> ${coincideSubBloque}`,
-        COMPATIBLE: coincideFecha && coincideDia && coincideBloque && coincideSubBloque
-      });
-      
-      return coincideFecha && coincideDia && coincideBloque && coincideSubBloque;
-    });
-    
-    console.log('\n✅ Reservas compatibles encontradas:', reservasCompatibles.length);
-    console.log('======================================================');
-    
-    alert(`🔍 DEBUG TABLA EJECUTADO\n\nRESULTADOS:\n- Reservas en tabla: ${reservasDelDia?.length || 0}\n- Reservas en "Últimas 3": ${todasLasReservas?.length || 0}\n- Compatibles con primer slot: ${reservasCompatibles.length}\n\nRevisa la consola para detalles completos.`);
-  }
-
-  // ⚠️ FUNCIÓN PARA FORZAR TABLA - MOSTRAR TODAS LAS RESERVAS EN LA TABLA
-  const forzarTablaCompleta = async () => {
-    console.log('📋 [TABLA] FORZANDO MOSTRAR TODAS LAS RESERVAS EN LA TABLA')
-    
-    try {
-      // Obtener todas las reservas frescas
-      const todasFrescas = await obtenerReservas()
-      console.log('📋 [TABLA] Reservas obtenidas para tabla:', todasFrescas?.length || 0)
-      
-      // FORZAR: poner TODAS las reservas en AMBOS estados
-      setTodasLasReservas(todasFrescas || [])
-      setReservasDelDia(todasFrescas || [])  // ⚠️ FORZAR TABLA
-      
-      // Logging detallado
-      console.log('📋 [TABLA] Estados actualizados:')
-      console.log('- todasLasReservas:', todasFrescas?.length || 0)
-      console.log('- reservasDelDia (tabla):', todasFrescas?.length || 0)
-      
-      alert(`📋 TABLA FORZADA!\n\nReservas en tabla: ${todasFrescas?.length || 0}\nReservas en "Últimas 3": ${todasFrescas?.length || 0}\n\nAhora deberías ver las reservas en AMBOS lugares.`)
-      
-    } catch (error) {
-      console.error('❌ [TABLA] Error al forzar tabla:', error)
-      alert('❌ Error al forzar tabla: ' + error.message)
-    }
-  }
-
-  // ⚠️ FUNCIÓN DE LIMPIEZA INMEDIATA PARA RESOLVER CONFLICTOS
-  const limpiarConflictosInmediato = async () => {
-    console.log('🧹 [RESERVAS PAGE] LIMPIEZA INMEDIATA - Resolviendo conflictos...')
-    
-    try {
-      // 1. Limpiar localStorage COMPLETAMENTE
-      console.log('🧹 Limpiando localStorage...')
-      localStorage.removeItem('reservas')
-      localStorage.removeItem('usuario')
-      localStorage.removeItem('auth')
-      
-      // 2. Reiniciar estados
-      setReservas([])
-      setTodasLasReservas([])
-      setReservasDelDia([])
-      
-      // 3. Obtener datos frescos de Supabase
-      console.log('🔍 Obteniendo datos frescos de Supabase...')
-      const reservasFrescas = await obtenerReservas()
-      
-      console.log('✅ Datos frescos obtenidos:', reservasFrescas?.length || 0)
-      
-      // 4. Actualizar estados con datos limpios
-      setReservas(reservasFrescas || [])
-      setTodasLasReservas(reservasFrescas || [])
-      
-      alert(`✅ CONFLICTOS RESUELTOS!\n\nReservas encontradas: ${reservasFrescas?.length || 0}\nLocalStorage limpiado\nDatos frescos de Supabase`)
-      
-    } catch (error) {
-      console.error('❌ Error en limpieza inmediata:', error)
-      alert('❌ Error en limpieza: ' + error.message)
-    }
-  }
-
-  // FUNCIÓN TEMPORAL PARA FORZAR MOSTRAR RESERVAS
-  const forzarMostrarReservas = async () => {
-    try {
-      console.log('🚀 FORZANDO MOSTRAR RESERVAS...')
-      
-      // Obtener TODAS las reservas directamente
-      const todasDirectas = await obtenerReservas()
-      console.log('📊 Reservas obtenidas directamente:', todasDirectas)
-      
-      // Forzar que aparezcan en AMBOS estados
-      setTodasLasReservas(todasDirectas)
-      setReservasDelDia(todasDirectas)  // ⚠️ FORZAR: usar todas las reservas en la tabla
-      
-      alert(`🚀 FORZADO COMPLETADO!\n\nReservas encontradas: ${todasDirectas.length}\n\n${todasDirectas.map(r => `- ${r.curso} | ${r.fecha} | Bloque ${r.bloque}`).join('\n')}`)
-      
-    } catch (error) {
-      console.error('❌ Error al forzar reservas:', error)
-      alert(`❌ Error: ${error.message}`)
-    }
-  }
-
-  // FUNCIÓN TEMPORAL PARA LIMPIAR CACHE Y FORZAR RECARGA
-  const limpiarCacheYRecargar = async () => {
-    try {
-      console.log('🧹 LIMPIANDO CACHE - Iniciando...')
-      
-      // Limpiar localStorage
-      localStorage.removeItem('reservas')
-      localStorage.removeItem('user')
-      localStorage.removeItem('auth')
-      console.log('✅ LIMPIANDO CACHE - localStorage limpiado')
-      
-      // Forzar recarga de reservas desde Supabase
-      setReservas([])
-      setLoading(true)
-      
-      console.log('🔄 LIMPIANDO CACHE - Recargando desde Supabase...')
-      const reservasActualizadas = await obtenerReservas()
-      console.log('✅ LIMPIANDO CACHE - Reservas obtenidas:', reservasActualizadas.length)
-      
-      setReservas(reservasActualizadas)
-      setLoading(false)
-      
-      alert(`✅ CACHE LIMPIADO!\n\nReservas actuales: ${reservasActualizadas.length}\nDatos ahora vienen directamente de Supabase`)
-      
-    } catch (error) {
-      console.error('❌ Error al limpiar cache:', error)
-      alert(`❌ Error: ${error.message}`)
-      setLoading(false)
-    }
-  }
-
-  const ejecutarDiagnostico = async () => {
-    console.log('🔍 EJECUTANDO DIAGNÓSTICO...');
-    const diagnostico = await diagnosticarReservas();
-    
-    alert(`DIAGNÓSTICO RESERVAS:
-
-📊 SUPABASE:
-- Disponible: ${diagnostico.supabase.disponible ? 'SÍ' : 'NO'}
-- Reservas: ${diagnostico.supabase.reservas.length}
-- Error: ${diagnostico.supabase.error || 'Ninguno'}
-
-💾 LOCALSTORAGE:
-- Reservas: ${diagnostico.localStorage.reservas.length}
-
-🔍 PROBLEMA:
-${diagnostico.problema || 'No detectado'}
-
-Ver consola para más detalles.`);
-  };
-
   const semanaInfo = getSemanaInfo(fechaSeleccionada);
 
   const obtenerFechaActual = () => {
@@ -525,8 +187,6 @@ Ver consola para más detalles.`);
     const cargarReservasDeLaSemana = async () => {
       if (fechaSeleccionada) {
         try {
-          console.log('🔄 CARGANDO RESERVAS - Fecha seleccionada:', fechaSeleccionada)
-          
           // Calcular todas las fechas de la semana
           const fecha = new Date(fechaSeleccionada + 'T00:00:00');
           const diaSemana = fecha.getDay();
@@ -542,14 +202,12 @@ Ver consola para más detalles.`);
             
             try {
               const reservasDelDia = await obtenerReservasPorFecha(fechaStr);
-              console.log(`📅 RESERVAS ${fechaStr}:`, reservasDelDia)
               reservasSemana.push(...reservasDelDia);
             } catch (error) {
               console.error(`Error al cargar reservas del día ${fechaStr}:`, error);
             }
           }
           
-          console.log('📊 TOTAL RESERVAS SEMANA:', reservasSemana)
           setReservasDelDia(reservasSemana);
         } catch (error) {
           console.error('Error al cargar reservas de la semana:', error);
@@ -559,15 +217,10 @@ Ver consola para más detalles.`);
         setReservasDelDia([]);
       }
       
-      // Cargar todas las reservas para "Últimas 3 Reservas" y debug
+      // Cargar todas las reservas para "Últimas 3 Reservas"
       try {
         const todas = await obtenerReservas();
-        console.log('📋 TODAS LAS RESERVAS (para debug y "Últimas 3"):', todas)
         setTodasLasReservas(todas);
-        
-        // ✅ NO forzar en reservasDelDia - mantener filtro por semana
-        console.log('✅ Manteniendo filtro por semana - NO sobrescribiendo reservasDelDia')
-        
       } catch (error) {
         console.error('Error al cargar todas las reservas:', error);
         setTodasLasReservas([]);
@@ -655,26 +308,15 @@ Ver consola para más detalles.`);
     e.preventDefault();
     
     try {
-      console.log('🔍 DEBUG SUBMIT - fechaSeleccionada:', fechaSeleccionada)
-      console.log('🔍 DEBUG SUBMIT - formData.fecha:', formData.fecha)
-      console.log('🔍 DEBUG SUBMIT - formData.tipoBloque:', formData.tipoBloque)
-      console.log('🔍 DEBUG SUBMIT - reservaSeleccionada:', reservaSeleccionada)
-      
       // USAR SIEMPRE fechaSeleccionada como fecha correcta
       const datosReservaCorregidos = {
         ...formData,
-        fecha: fechaSeleccionada  // ⚠️ CORRECCIÓN: usar la fecha seleccionada en el calendario
+        fecha: fechaSeleccionada
       }
       
-      console.log('🔍 DEBUG SUBMIT - datosReservaCorregidos:', datosReservaCorregidos)
-      
       const datosReserva = formatearReservaDesdeFormulario(datosReservaCorregidos, reservaSeleccionada);
-      console.log('🔍 DEBUG SUBMIT - datosReserva formateados:', datosReserva)
-      console.log('🔍 DEBUG SUBMIT - tipoBloque final:', datosReserva.tipoBloque)
-      console.log('🔍 DEBUG SUBMIT - subBloque final:', datosReserva.subBloque)
       
       const reservaGuardada = await guardarReserva(datosReserva);
-      console.log('🔍 DEBUG SUBMIT - Reserva guardada:', reservaGuardada)
       
       if (reservaGuardada) {
         // Recargar reservas de toda la semana
@@ -705,15 +347,6 @@ Ver consola para más detalles.`);
         // CERRAR EL MODAL
         setMostrarModal(false);
         setReservaSeleccionada(null);
-        
-        // Reserva creada exitosamente (sin mostrar alert)
-        console.log('✅ Reserva creada exitosamente:', {
-          curso: formData.curso,
-          asignatura: formData.asignatura,
-          fecha: fechaSeleccionada,  // ⚠️ MOSTRAR LA FECHA CORRECTA
-          bloque: reservaSeleccionada.bloque.id,
-          profesor: formData.profesor
-        });
       } else {
         alert('Error al guardar la reserva. Inténtalo de nuevo.');
       }
@@ -922,30 +555,6 @@ Ver consola para más detalles.`);
                         // Calcular la fecha exacta para este día de la semana
                         const fechaExactaDia = calcularFechaDelDia(fechaSeleccionada, dia);
                         
-                        // 🔍 DEBUG: Log detallado para encontrar por qué no aparece la reserva
-                        if (dia === 'Lunes' && bloque.id === 1 && subIdx === 0) { // Solo mostrar debug para primer slot
-                          console.log('🔍 DEBUG RENDER - Buscando reserva para:', {
-                            fechaExactaDia,
-                            dia,
-                            bloque: bloque.id,
-                            subBloque: subBloques[subIdx],
-                            totalReservas: reservasDelDia.length
-                          });
-                          
-                          // Mostrar todas las reservas para comparar
-                          reservasDelDia.forEach((r, idx) => {
-                            console.log(`🔍 DEBUG RENDER - Reserva ${idx}:`, {
-                              fecha: r.fecha,
-                              dia: r.dia,
-                              dia_semana: r.dia_semana,
-                              bloque: r.bloque,
-                              subBloque: r.subBloque,
-                              sub_bloque: r.sub_bloque,
-                              curso: r.curso
-                            });
-                          });
-                        }
-                        
                         const reservaEnSlot = reservasDelDia.find(r => {
                           // ⚡ MATCHING MEJORADO Y MÁS FLEXIBLE
                           
@@ -1017,43 +626,6 @@ Ver consola para más detalles.`);
                           
                           // RESULTADO FINAL - SOLO matching específico (sin fallback que causa duplicados)
                           const resultado = (coincideFecha && coincideDia && coincideBloque && coincideSubBloque);
-                          
-                          // Debug detallado de la búsqueda (para todas las reservas de tipo 1hora o 2hora)
-                          if ((r.tipoBloque === '1hora' || r.tipo_bloque === '1hora' || r.tipoBloque === '2hora' || r.tipo_bloque === '2hora') && dia === 'Jueves') {
-                            console.log('🔍 DEBUG TIPO ESPECÍFICO - Comparando reserva tipo:', r.tipoBloque || r.tipo_bloque, {
-                              reserva: { 
-                                id: r.id,
-                                curso: r.curso,
-                                fecha: r.fecha, 
-                                dia: diaReserva,
-                                bloque: r.bloque, 
-                                subBloque: subBloqueReserva,
-                                tipoBloque: r.tipoBloque || r.tipo_bloque,
-                                sub_bloque_bd: r.sub_bloque
-                              },
-                              buscando: { fechaExactaDia, dia, bloque: bloque.id, subBloque: subBloqueBuscado, subIdx },
-                              coincidencias: { coincideFecha, coincideDia, coincideBloque, coincideSubBloque },
-                              RESULTADO_FINAL: resultado
-                            });
-                          }
-                          
-                          // Debug detallado de la búsqueda (solo para primer slot de Lunes)
-                          if (dia === 'Lunes' && bloque.id === 1 && subIdx === 0) {
-                            console.log('🔍 DEBUG FIND MEJORADO - Comparando:', {
-                              reserva: { 
-                                curso: r.curso,
-                                fecha: r.fecha, 
-                                dia: diaReserva,
-                                bloque: r.bloque, 
-                                subBloque: subBloqueReserva,
-                                tipoBloque: r.tipoBloque || r.tipo_bloque,
-                                sub_bloque_bd: r.sub_bloque
-                              },
-                              buscando: { fechaExactaDia, dia, bloque: bloque.id, subBloque: subBloqueBuscado, subIdx },
-                              coincidencias: { coincideFecha, coincideDia, coincideBloque, coincideSubBloque },
-                              RESULTADO_FINAL: resultado
-                            });
-                          }
                           
                           return resultado;
                         });
@@ -1208,31 +780,6 @@ Ver consola para más detalles.`);
               </div>
             </div>
           )}
-          
-          {/* DEBUG INFO TEMPORAL */}
-          <div style={{
-            marginTop: '20px',
-            padding: '10px',
-            backgroundColor: '#f0f0f0',
-            borderRadius: '5px',
-            fontSize: '12px'
-          }}>
-            <div><strong>🔍 DEBUG INFO:</strong></div>
-            <div>📋 Total reservas cargadas: {todasLasReservas.length}</div>
-            <div>📅 Reservas de la semana: {reservasDelDia.length}</div>
-            <div>📆 Fecha seleccionada: {fechaSeleccionada || 'Ninguna'}</div>
-            <div>📊 Estado loading: {loading ? 'Cargando...' : 'Listo'}</div>
-            {todasLasReservas.length > 0 && (
-              <div>
-                <div><strong>Última reserva:</strong></div>
-                <div>- Fecha: {todasLasReservas[todasLasReservas.length - 1]?.fecha}</div>
-                <div>- Curso: {todasLasReservas[todasLasReservas.length - 1]?.curso}</div>
-                <div>- Día: {todasLasReservas[todasLasReservas.length - 1]?.dia}</div>
-                <div>- Bloque: {todasLasReservas[todasLasReservas.length - 1]?.bloque}</div>
-                <div>- Sub-bloque: {todasLasReservas[todasLasReservas.length - 1]?.sub_bloque}</div>
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Modal para registrar reserva */}

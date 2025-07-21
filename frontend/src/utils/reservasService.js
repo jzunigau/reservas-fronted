@@ -4,14 +4,11 @@ import { supabase } from '../config/supabase'
 
 // Obtener todas las reservas SOLO de Supabase (CONFLICTO RESUELTO)
 export const obtenerReservas = async () => {
-  console.log('🔍 [RESERVAS SERVICE] Iniciando obtenerReservas - MODO LIMPIO')
   
   // ⚠️ PASO 1: LIMPIAR localStorage inmediatamente para evitar conflictos
-  console.log('🧹 [RESERVAS SERVICE] LIMPIANDO localStorage para evitar conflictos...')
   localStorage.removeItem('reservas')
   
   try {
-    console.log('🔍 [RESERVAS SERVICE] Intentando obtener desde Supabase...')
     const { data, error } = await supabase
       .from('reservas')
       .select(`
@@ -26,28 +23,10 @@ export const obtenerReservas = async () => {
       console.error('❌ [RESERVAS SERVICE] Error completo:', JSON.stringify(error, null, 2))
       
       // ⚠️ NO usar fallback - devolver array vacío para evitar conflictos
-      console.log('📊 [RESERVAS SERVICE] Devolviendo array vacío - SIN FALLBACK')
       return []
     }
     
-    console.log('✅ [RESERVAS SERVICE] Datos obtenidos de Supabase:', data)
-    console.log('📊 [RESERVAS SERVICE] Cantidad de reservas:', data?.length || 0)
     
-    // Debug específico para reservas con tipoBloque
-    if (data && Array.isArray(data)) {
-      data.forEach((reserva, index) => {
-        if (reserva.tipo_bloque === '1hora' || reserva.tipo_bloque === '2hora') {
-          console.log(`🎯 [RESERVAS SERVICE] Reserva ${index} tipo específico:`, {
-            id: reserva.id,
-            curso: reserva.curso,
-            tipo_bloque: reserva.tipo_bloque,
-            sub_bloque: reserva.sub_bloque,
-            fecha: reserva.fecha,
-            bloque: reserva.bloque
-          });
-        }
-      });
-    }
     
     return data || []
   } catch (error) {
@@ -55,7 +34,6 @@ export const obtenerReservas = async () => {
     console.error('❌ [RESERVAS SERVICE] Stack completo:', error.stack)
     
     // ⚠️ NO usar fallback - devolver array vacío
-    console.log('📊 [RESERVAS SERVICE] Error crítico - devolviendo array vacío')
     return []
   }
 }
@@ -63,7 +41,6 @@ export const obtenerReservas = async () => {
 // Obtener reservas por fecha específica SOLO de Supabase
 export const obtenerReservasPorFecha = async (fecha) => {
   try {
-    console.log('🔍 [RESERVAS SERVICE] Obteniendo reservas por fecha:', fecha)
     
     const { data, error } = await supabase
       .from('reservas')
@@ -80,7 +57,6 @@ export const obtenerReservasPorFecha = async (fecha) => {
       throw new Error(`Error de base de datos: ${error.message}`)
     }
     
-    console.log('✅ [RESERVAS SERVICE] Reservas por fecha obtenidas:', data?.length || 0)
     return data || []
   } catch (error) {
     console.error('❌ [RESERVAS SERVICE] Error general por fecha:', error)
@@ -114,10 +90,8 @@ export const obtenerReservasPorMes = async (year, month) => {
 // Verificar disponibilidad de un slot
 export const verificarDisponibilidad = async (fecha, bloque, subBloque, dia) => {
   try {
-    console.log('🔍 DEBUG RESERVAS - Verificando disponibilidad:', { fecha, bloque, subBloque, dia })
     
     if (!supabase?.from) {
-      console.log('⚠️ DEBUG RESERVAS - Supabase no disponible, usando fallback disponibilidad')
       return !existeReservaEnSlotLocalStorage(fecha, dia, bloque, subBloque)
     }
     
@@ -136,7 +110,6 @@ export const verificarDisponibilidad = async (fecha, bloque, subBloque, dia) => 
     }
     
     const available = !data || data.length === 0
-    console.log('✅ DEBUG RESERVAS - Disponibilidad:', available)
     return available
   } catch (error) {
     console.error('Error al verificar disponibilidad:', error)
@@ -154,22 +127,18 @@ export const existeReservaEnSlot = async (fecha, dia, bloque, subBloque) => {
 // Guardar una nueva reserva
 export const guardarReserva = async (nuevaReserva) => {
   try {
-    console.log('🔍 DEBUG RESERVAS - Guardando reserva:', nuevaReserva)
     
     if (!supabase?.from) {
-      console.log('⚠️ DEBUG RESERVAS - Supabase no disponible, usando localStorage')
       return guardarReservaLocalStorage(nuevaReserva)
     }
 
     // Obtener datos del usuario desde localStorage (nuestro sistema de auth)
     const userData = localStorage.getItem('user_data')
     if (!userData) {
-      console.log('❌ DEBUG RESERVAS - No hay datos de usuario en localStorage')
       throw new Error('Usuario no autenticado')
     }
 
     const user = JSON.parse(userData)
-    console.log('🔍 DEBUG RESERVAS - Usuario actual:', user)
 
     // Buscar información del usuario en la tabla usuarios por email
     const { data: dbUserData, error: userError } = await supabase
@@ -178,11 +147,8 @@ export const guardarReserva = async (nuevaReserva) => {
       .eq('email', user.email)
       .single()
 
-    console.log('🔍 DEBUG RESERVAS - Datos de usuario en BD:', dbUserData)
-    console.log('🔍 DEBUG RESERVAS - Error de usuario:', userError)
 
     if (userError || !dbUserData) {
-      console.log('⚠️ DEBUG RESERVAS - Usuario no encontrado en BD, creando fallback')
       // Si no encuentra el usuario en BD, usar localStorage como fallback
       return guardarReservaLocalStorage(nuevaReserva)
     }
@@ -194,8 +160,6 @@ export const guardarReserva = async (nuevaReserva) => {
       .eq('nombre', nuevaReserva.laboratorio)
       .single()
 
-    console.log('🔍 DEBUG RESERVAS - Datos de laboratorio:', labData)
-    console.log('🔍 DEBUG RESERVAS - Error de laboratorio:', labError)
 
     let laboratorio_id
     if (labError || !labData) {
@@ -209,10 +173,8 @@ export const guardarReserva = async (nuevaReserva) => {
       
       const finalLabData = firstLab || { id: 1 }
       laboratorio_id = finalLabData.id
-      console.log('🔍 DEBUG RESERVAS - Usando laboratorio por defecto:', laboratorio_id)
     } else {
       laboratorio_id = labData.id
-      console.log('🔍 DEBUG RESERVAS - Usando laboratorio encontrado:', laboratorio_id)
     }
 
     // Preparar datos para inserción
@@ -232,7 +194,6 @@ export const guardarReserva = async (nuevaReserva) => {
       estado: 'confirmada'
     }
 
-    console.log('🔍 DEBUG RESERVAS - Datos a insertar:', reservaData)
 
     const { data, error } = await supabase
       .from('reservas')
@@ -244,7 +205,6 @@ export const guardarReserva = async (nuevaReserva) => {
       throw error
     }
     
-    console.log('✅ DEBUG RESERVAS - Reserva creada:', data?.[0])
     return data?.[0] || null
   } catch (error) {
     console.error('Error al guardar reserva:', error)
@@ -256,10 +216,8 @@ export const guardarReserva = async (nuevaReserva) => {
 // Actualizar estado de una reserva
 export const actualizarReserva = async (id, datosActualizados) => {
   try {
-    console.log('🔍 DEBUG RESERVAS - Actualizando reserva:', id, datosActualizados)
     
     if (!supabase?.from) {
-      console.log('⚠️ DEBUG RESERVAS - Supabase no disponible para actualización')
       return null
     }
     
@@ -274,7 +232,6 @@ export const actualizarReserva = async (id, datosActualizados) => {
       throw error
     }
     
-    console.log('✅ DEBUG RESERVAS - Reserva actualizada:', data?.[0])
     return data?.[0] || null
   } catch (error) {
     console.error('Error al actualizar reserva:', error)
@@ -285,10 +242,8 @@ export const actualizarReserva = async (id, datosActualizados) => {
 // Eliminar una reserva
 export const eliminarReserva = async (id) => {
   try {
-    console.log('🔍 DEBUG RESERVAS - Eliminando reserva:', id)
     
     if (!supabase?.from) {
-      console.log('⚠️ DEBUG RESERVAS - Supabase no disponible para eliminación')
       return false
     }
     
@@ -303,7 +258,6 @@ export const eliminarReserva = async (id) => {
       throw error
     }
     
-    console.log('✅ DEBUG RESERVAS - Reserva cancelada:', data?.[0])
     return true
   } catch (error) {
     console.error('Error al eliminar reserva:', error)
@@ -330,10 +284,8 @@ export const obtenerEstadisticas = async () => {
 // Obtener laboratorios disponibles
 export const obtenerLaboratorios = async () => {
   try {
-    console.log('🔍 DEBUG RESERVAS - Obteniendo laboratorios...')
     
     if (!supabase?.from) {
-      console.log('⚠️ DEBUG RESERVAS - Supabase no disponible para laboratorios')
       return []
     }
     
@@ -348,7 +300,6 @@ export const obtenerLaboratorios = async () => {
       throw error
     }
     
-    console.log('✅ DEBUG RESERVAS - Laboratorios obtenidos:', data?.length || 0)
     return data || []
   } catch (error) {
     console.error('Error al obtener laboratorios:', error)
@@ -358,8 +309,6 @@ export const obtenerLaboratorios = async () => {
 
 // Formatear datos de la reserva desde el formulario
 export const formatearReservaDesdeFormulario = (formData, reservaSeleccionada) => {
-  console.log('🔍 DEBUG FORMAT - formData recibido:', formData)
-  console.log('🔍 DEBUG FORMAT - reservaSeleccionada:', reservaSeleccionada)
   
   // Determinar el laboratorio basado en la asignatura (simulación)
   const laboratoriosPorAsignatura = {
@@ -397,7 +346,6 @@ export const formatearReservaDesdeFormulario = (formData, reservaSeleccionada) =
     observaciones: formData.observaciones || null
   };
   
-  console.log('🔍 DEBUG FORMAT - reserva formateada:', reservaFormateada)
   return reservaFormateada;
 };
 
