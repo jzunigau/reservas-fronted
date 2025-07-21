@@ -2,18 +2,16 @@
 
 import { supabase } from '../config/supabase'
 
-// Obtener todas las reservas
+// Obtener todas las reservas SOLO de Supabase (CONFLICTO RESUELTO)
 export const obtenerReservas = async () => {
+  console.log('🔍 [RESERVAS SERVICE] Iniciando obtenerReservas - MODO LIMPIO')
+  
+  // ⚠️ PASO 1: LIMPIAR localStorage inmediatamente para evitar conflictos
+  console.log('🧹 [RESERVAS SERVICE] LIMPIANDO localStorage para evitar conflictos...')
+  localStorage.removeItem('reservas')
+  
   try {
-    console.log('🔍 DEBUG RESERVAS - Obteniendo reservas...')
-    console.log('🔍 DEBUG RESERVAS - Supabase disponible:', !!supabase)
-    console.log('🔍 DEBUG RESERVAS - Supabase.from disponible:', !!supabase?.from)
-    
-    if (!supabase?.from) {
-      console.log('⚠️ DEBUG RESERVAS - Supabase no disponible, usando fallback')
-      return obtenerReservasLocalStorage()
-    }
-    
+    console.log('🔍 [RESERVAS SERVICE] Intentando obtener desde Supabase...')
     const { data, error } = await supabase
       .from('reservas')
       .select(`
@@ -24,28 +22,48 @@ export const obtenerReservas = async () => {
       .order('fecha', { ascending: true })
     
     if (error) {
-      console.error('🚨 DEBUG RESERVAS - Error de Supabase:', error)
-      throw error
+      console.error('❌ [RESERVAS SERVICE] Error en Supabase:', error)
+      console.error('❌ [RESERVAS SERVICE] Error completo:', JSON.stringify(error, null, 2))
+      
+      // ⚠️ NO usar fallback - devolver array vacío para evitar conflictos
+      console.log('📊 [RESERVAS SERVICE] Devolviendo array vacío - SIN FALLBACK')
+      return []
     }
     
-    console.log('✅ DEBUG RESERVAS - Datos obtenidos:', data?.length || 0, 'reservas')
+    console.log('✅ [RESERVAS SERVICE] Datos obtenidos de Supabase:', data)
+    console.log('📊 [RESERVAS SERVICE] Cantidad de reservas:', data?.length || 0)
+    
+    // Debug específico para reservas con tipoBloque
+    if (data && Array.isArray(data)) {
+      data.forEach((reserva, index) => {
+        if (reserva.tipo_bloque === '1hora' || reserva.tipo_bloque === '2hora') {
+          console.log(`🎯 [RESERVAS SERVICE] Reserva ${index} tipo específico:`, {
+            id: reserva.id,
+            curso: reserva.curso,
+            tipo_bloque: reserva.tipo_bloque,
+            sub_bloque: reserva.sub_bloque,
+            fecha: reserva.fecha,
+            bloque: reserva.bloque
+          });
+        }
+      });
+    }
+    
     return data || []
   } catch (error) {
-    console.error('Error al obtener reservas:', error)
-    // Fallback a localStorage si hay error en la API
-    return obtenerReservasLocalStorage()
+    console.error('❌ [RESERVAS SERVICE] Error general:', error)
+    console.error('❌ [RESERVAS SERVICE] Stack completo:', error.stack)
+    
+    // ⚠️ NO usar fallback - devolver array vacío
+    console.log('📊 [RESERVAS SERVICE] Error crítico - devolviendo array vacío')
+    return []
   }
 }
 
-// Obtener reservas por fecha específica
+// Obtener reservas por fecha específica SOLO de Supabase
 export const obtenerReservasPorFecha = async (fecha) => {
   try {
-    console.log('🔍 DEBUG RESERVAS - Obteniendo reservas por fecha:', fecha)
-    
-    if (!supabase?.from) {
-      console.log('⚠️ DEBUG RESERVAS - Supabase no disponible, usando fallback por fecha')
-      return obtenerReservasPorFechaLocalStorage(fecha)
-    }
+    console.log('🔍 [RESERVAS SERVICE] Obteniendo reservas por fecha:', fecha)
     
     const { data, error } = await supabase
       .from('reservas')
@@ -55,19 +73,18 @@ export const obtenerReservasPorFecha = async (fecha) => {
         laboratorio_data:laboratorios(nombre, capacidad, ubicacion)
       `)
       .eq('fecha', fecha)
-      .order('hora_inicio', { ascending: true })
+      .order('bloque', { ascending: true })  // ⚠️ CAMBIO: usar 'bloque' en lugar de 'hora_inicio'
     
     if (error) {
-      console.error('🚨 DEBUG RESERVAS - Error por fecha:', error)
-      throw error
+      console.error('❌ [RESERVAS SERVICE] Error por fecha:', error)
+      throw new Error(`Error de base de datos: ${error.message}`)
     }
     
-    console.log('✅ DEBUG RESERVAS - Reservas por fecha obtenidas:', data?.length || 0)
+    console.log('✅ [RESERVAS SERVICE] Reservas por fecha obtenidas:', data?.length || 0)
     return data || []
   } catch (error) {
-    console.error('Error al obtener reservas por fecha:', error)
-    // Fallback a localStorage
-    return obtenerReservasPorFechaLocalStorage(fecha)
+    console.error('❌ [RESERVAS SERVICE] Error general por fecha:', error)
+    throw error
   }
 }
 
@@ -204,10 +221,7 @@ export const guardarReserva = async (nuevaReserva) => {
       laboratorio_id: laboratorio_id,
       fecha: nuevaReserva.fecha,
       bloque: parseInt(nuevaReserva.bloque),
-      sub_bloque: nuevaReserva.subBloque ? 
-        (nuevaReserva.subBloque === '1° hora' ? 1 : 
-         nuevaReserva.subBloque === '2° hora' ? 2 : 
-         parseInt(nuevaReserva.subBloque) || 1) : 1,  // CONVERSIÓN DE TEXTO A NÚMERO
+      sub_bloque: nuevaReserva.subBloque || '1° hora', // Usar string directamente
       dia_semana: nuevaReserva.dia,
       tipo_bloque: nuevaReserva.tipoBloque || 'completo',
       curso: nuevaReserva.curso,
@@ -344,6 +358,9 @@ export const obtenerLaboratorios = async () => {
 
 // Formatear datos de la reserva desde el formulario
 export const formatearReservaDesdeFormulario = (formData, reservaSeleccionada) => {
+  console.log('🔍 DEBUG FORMAT - formData recibido:', formData)
+  console.log('🔍 DEBUG FORMAT - reservaSeleccionada:', reservaSeleccionada)
+  
   // Determinar el laboratorio basado en la asignatura (simulación)
   const laboratoriosPorAsignatura = {
     'Matemáticas': 'Lab. Informática 1',
@@ -355,25 +372,33 @@ export const formatearReservaDesdeFormulario = (formData, reservaSeleccionada) =
     'Ciencias Naturales': 'Lab. Ciencias'
   };
 
-  // Determinar sub_bloque basado en tipoBloque
-  let subBloque = 1; // Por defecto
-  if (formData.tipoBloque === '2hora') {
-    subBloque = 2;
+  // Determinar sub_bloque y tipo_bloque basado en tipoBloque
+  let subBloque = '1° hora'; // Por defecto
+  let tipoBloque = formData.tipoBloque; // Usar valor original después de actualizar constraint
+  
+  if (formData.tipoBloque === '1hora') {
+    subBloque = '1° hora'; // Primera hora
+  } else if (formData.tipoBloque === '2hora') {
+    subBloque = '2° hora'; // Segunda hora
   } else if (formData.tipoBloque === 'completo') {
-    subBloque = 1; // Para bloque completo, usar 1 como referencia
+    subBloque = '1° hora'; // Para bloque completo, usar 1° hora como referencia
   }
 
-  return {
+  const reservaFormateada = {
     bloque: reservaSeleccionada.bloque.id,
     subBloque: subBloque,
     dia: reservaSeleccionada.dia,
-    fecha: formData.fecha,
-    tipoBloque: formData.tipoBloque,
+    fecha: formData.fecha,  // ⚠️ Esta debe ser la fecha correcta del calendario
+    tipoBloque: tipoBloque, // Usar el valor original (después de ejecutar SQL)
     curso: formData.curso,
     asignatura: formData.asignatura,
     profesor: formData.profesor,
-    laboratorio: laboratoriosPorAsignatura[formData.asignatura] || 'Lab. General'
+    laboratorio: laboratoriosPorAsignatura[formData.asignatura] || 'Lab. General',
+    observaciones: formData.observaciones || null
   };
+  
+  console.log('🔍 DEBUG FORMAT - reserva formateada:', reservaFormateada)
+  return reservaFormateada;
 };
 
 // =====================================================
