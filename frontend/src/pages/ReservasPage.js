@@ -660,42 +660,84 @@ const ReservasPage = () => {
                           const subBloqueReserva = r.subBloque || r.sub_bloque || '';
                           const subBloqueBuscado = subBloques[subIdx];
                           
-                          // Lógica ESTRICTA para coincidir sub-bloques según el tipo de reserva
+                          // 🔍 DEBUG: Log para diagnosticar el problema (solo cuando hay matching básico)
+                          if (coincideFecha && coincideDia && coincideBloque) {
+                            console.log('🔍 DEBUG Reserva candidata:', {
+                              reservaId: r.id,
+                              curso: r.curso,
+                              tipoBloque: r.tipoBloque || r.tipo_bloque || 'SIN_TIPO',
+                              subBloque: subBloqueReserva || 'SIN_SUBBLOQUE',
+                              subBloqueBuscado: subBloqueBuscado,
+                              bloque: r.bloque,
+                              dia: dia
+                            });
+                          }
+                          
+                          // Lógica ESTRICTA Y SIMPLIFICADA para coincidir sub-bloques
                           let coincideSubBloque = false;
                           
-                          // Si la reserva es de tipo completo, debe aparecer en ambos slots (1° y 2° hora)
-                          if (r.tipoBloque === 'completo' || r.tipo_bloque === 'completo') {
-                            coincideSubBloque = true; // Bloque completo aparece en ambas horas
-                          }
-                          // Si la reserva es de 1° hora, SOLO aparece en el primer slot
-                          else if (r.tipoBloque === '1hora' || r.tipo_bloque === '1hora') {
-                            coincideSubBloque = (subBloqueBuscado === '1° hora');
-                          }
-                          // Si la reserva es de 2° hora, SOLO aparece en el segundo slot  
-                          else if (r.tipoBloque === '2hora' || r.tipo_bloque === '2hora') {
-                            coincideSubBloque = (subBloqueBuscado === '2° hora');
-                          }
-                          // Para reservas tipo 'parcial', verificar por sub_bloque específico
-                          else if (r.tipoBloque === 'parcial' || r.tipo_bloque === 'parcial') {
-                            // Si es parcial con sub_bloque de 1° hora
-                            if ((r.subBloque === '1° hora' || r.sub_bloque === '1° hora') && subBloqueBuscado === '1° hora') {
-                              coincideSubBloque = true;
-                            }
-                            // Si es parcial con sub_bloque de 2° hora
-                            else if ((r.subBloque === '2° hora' || r.sub_bloque === '2° hora') && subBloqueBuscado === '2° hora') {
-                              coincideSubBloque = true;
-                            }
-                          }
-                          // Fallback LIMITADO para casos legacy (sin tipos específicos)
-                          else {
-                            coincideSubBloque = 
-                              subBloqueReserva === subBloqueBuscado ||
-                              (subBloqueBuscado === '1° hora' && (subBloqueReserva === 1 || subBloqueReserva === '1' || subBloqueReserva === 'primera')) ||
-                              (subBloqueBuscado === '2° hora' && (subBloqueReserva === 2 || subBloqueReserva === '2' || subBloqueReserva === 'segunda'));
+                          // Obtener tipo de bloque de manera más robusta
+                          const tipoBloque = r.tipoBloque || r.tipo_bloque || '';
+                          const subBloqueActual = subBloques[subIdx]; // '1° hora' o '2° hora'
+                          
+                          // Debugging básico (sin usar coincideSubBloque aún)
+                          const esReservaDelBloque = coincideFecha && coincideDia && coincideBloque;
+                          if (esReservaDelBloque) {
+                            console.log(`🔍 Evaluando reserva ${r.id} para celda [${dia}, Bloque ${bloque.id}, ${subBloqueActual}]:`, {
+                              tipoBloque: tipoBloque || 'UNDEFINED',
+                              subBloque: subBloqueReserva || 'UNDEFINED',
+                              curso: r.curso,
+                              fecha: r.fecha,
+                              dia: r.dia || r.dia_semana
+                            });
                           }
                           
-                          // 5. ⚠️ MODO BYPASS: Si no hay coincidencias específicas, intentar matching por bloque solamente
-                          const matchingRelajado = coincideBloque && (coincideDia || coincideFecha);
+                          // LÓGICA SIMPLIFICADA Y CLARA:
+                          
+                          // 1. Reservas de bloque completo: aparecen en AMBAS celdas (1° y 2° hora)
+                          if (tipoBloque === 'completo') {
+                            coincideSubBloque = true;
+                            if (esReservaDelBloque) console.log('✅ Reserva COMPLETA - aparece en ambas celdas');
+                          }
+                          
+                          // 2. Reservas de primera hora: SOLO aparecen en celda "1° hora"  
+                          else if (tipoBloque === '1hora') {
+                            coincideSubBloque = (subBloqueActual === '1° hora');
+                            if (esReservaDelBloque) console.log(`${coincideSubBloque ? '✅' : '❌'} Reserva 1° HORA - buscando: ${subBloqueActual}`);
+                          }
+                          
+                          // 3. Reservas de segunda hora: SOLO aparecen en celda "2° hora"
+                          else if (tipoBloque === '2hora') {
+                            coincideSubBloque = (subBloqueActual === '2° hora');
+                            if (esReservaDelBloque) console.log(`${coincideSubBloque ? '✅' : '❌'} Reserva 2° HORA - buscando: ${subBloqueActual}`);
+                          }
+                          
+                          // 4. Reservas legacy/parciales: usar campo subBloque/sub_bloque
+                          else if (tipoBloque === 'parcial' || !tipoBloque) {
+                            // Comparar directamente el subBloque guardado vs el actual
+                            if (subBloqueReserva === subBloqueActual) {
+                              coincideSubBloque = true;
+                            }
+                            // Fallback para variaciones del formato
+                            else if ((subBloqueActual === '1° hora') && 
+                                    (subBloqueReserva === 'primera' || subBloqueReserva === '1' || subBloqueReserva === 1)) {
+                              coincideSubBloque = true;
+                            }
+                            else if ((subBloqueActual === '2° hora') && 
+                                    (subBloqueReserva === 'segunda' || subBloqueReserva === '2' || subBloqueReserva === 2)) {
+                              coincideSubBloque = true;
+                            }
+                            
+                            if (esReservaDelBloque) {
+                              console.log(`${coincideSubBloque ? '✅' : '❌'} Reserva LEGACY/PARCIAL - subBloque: "${subBloqueReserva}" vs "${subBloqueActual}"`);
+                            }
+                          }
+                          
+                          // 5. Casos no reconocidos
+                          else {
+                            coincideSubBloque = false;
+                            if (esReservaDelBloque) console.log(`❌ Reserva TIPO DESCONOCIDO: "${tipoBloque}"`);
+                          }
                           
                           // RESULTADO FINAL - SOLO matching específico (sin fallback que causa duplicados)
                           const resultado = (coincideFecha && coincideDia && coincideBloque && coincideSubBloque);
@@ -819,40 +861,72 @@ const ReservasPage = () => {
 
         {/* Debug section */}
         <div className="mt-6 bg-gray-50 rounded-lg p-4 border border-gray-200">
-          <div className="font-bold text-gray-700 mb-2">📊 Estadísticas del Sistema:</div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-            <div className="bg-blue-100 p-3 rounded-lg text-center">
-              <div className="text-2xl font-bold text-blue-600">{todasLasReservas.length}</div>
-              <div className="text-sm text-blue-700">Total Reservas</div>
-            </div>
-            <div className="bg-green-100 p-3 rounded-lg text-center">
-              <div className="text-2xl font-bold text-green-600">{reservasDelDia.length}</div>
-              <div className="text-sm text-green-700">Reservas Hoy</div>
-            </div>
-            <div className="bg-purple-100 p-3 rounded-lg text-center">
-              <div className="text-2xl font-bold text-purple-600">
-                {new Set(todasLasReservas.map(r => r.profesor)).size}
-              </div>
-              <div className="text-sm text-purple-700">Profesores Activos</div>
-            </div>
-          </div>
-          
-          {/* Últimas reservas */}
-          {todasLasReservas.length > 0 && (
-            <div>
-              <div className="font-medium text-gray-700 mb-2">🕒 Últimas 3 Reservas:</div>
-              <div className="space-y-2">
-                {todasLasReservas.slice(-3).reverse().map(reserva => (
-                  <div key={reserva.id} className="bg-white p-2 rounded border text-xs">
-                    <strong>{reserva.curso}</strong> - {reserva.asignatura} | 
-                    {new Date(reserva.fecha + 'T00:00:00').toLocaleDateString('es-ES')} | 
-                    Bloque {reserva.bloque} ({reserva.sub_bloque || reserva.subBloque}) | 
-                    {reserva.profesor}
+          {(() => {
+            // Filtrar reservas por laboratorio seleccionado
+            const reservasLaboratorioSeleccionado = todasLasReservas.filter(r => 
+              laboratorioSeleccionado && String(r.laboratorio_id) === String(laboratorioSeleccionado)
+            );
+            
+            const nombreLaboratorio = laboratorios.find(lab => 
+              String(lab.id) === String(laboratorioSeleccionado)
+            )?.nombre || 'Laboratorio seleccionado';
+
+            return (
+              <>
+                <div className="font-bold text-gray-700 mb-2">
+                  📊 Estadísticas de {nombreLaboratorio}:
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                  <div className="bg-blue-100 p-3 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-blue-600">{reservasLaboratorioSeleccionado.length}</div>
+                    <div className="text-sm text-blue-700">Total Reservas</div>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
+                  <div className="bg-green-100 p-3 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      {reservasDelDia.filter(r => 
+                        laboratorioSeleccionado && String(r.laboratorio_id) === String(laboratorioSeleccionado)
+                      ).length}
+                    </div>
+                    <div className="text-sm text-green-700">Reservas esta Semana</div>
+                  </div>
+                  <div className="bg-purple-100 p-3 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-purple-600">
+                      {new Set(reservasLaboratorioSeleccionado.map(r => r.profesor)).size}
+                    </div>
+                    <div className="text-sm text-purple-700">Profesores Activos</div>
+                  </div>
+                </div>
+                
+                {/* Últimas reservas del laboratorio seleccionado */}
+                {reservasLaboratorioSeleccionado.length > 0 ? (
+                  <div>
+                    <div className="font-medium text-gray-700 mb-2">
+                      🕒 Últimas 3 Reservas de {nombreLaboratorio}:
+                    </div>
+                    <div className="space-y-2">
+                      {reservasLaboratorioSeleccionado.slice(-3).reverse().map(reserva => (
+                        <div key={reserva.id} className="bg-white p-2 rounded border text-xs">
+                          <strong>{reserva.curso}</strong> - {reserva.asignatura} | 
+                          {new Date(reserva.fecha + 'T00:00:00').toLocaleDateString('es-ES')} | 
+                          Bloque {reserva.bloque} ({reserva.sub_bloque || reserva.subBloque}) | 
+                          {reserva.profesor}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <div className="text-gray-500 text-sm">
+                      📋 No hay reservas registradas para {nombreLaboratorio}
+                    </div>
+                    <div className="text-gray-400 text-xs mt-1">
+                      Las nuevas reservas aparecerán aquí
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
 
         {/* Modal para registrar reserva */}
