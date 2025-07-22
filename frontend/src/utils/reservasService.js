@@ -118,9 +118,47 @@ export const verificarDisponibilidad = async (fecha, bloque, subBloque, dia) => 
   }
 }
 
+// Verificar disponibilidad de un slot para un laboratorio específico
+export const verificarDisponibilidadLaboratorio = async (fecha, bloque, subBloque, dia, laboratorio_id) => {
+  try {
+    
+    if (!supabase?.from) {
+      return !existeReservaEnSlotLocalStorage(fecha, dia, bloque, subBloque)
+    }
+    
+    const { data, error } = await supabase
+      .from('reservas')
+      .select('id')
+      .eq('fecha', fecha)
+      .eq('dia_semana', dia)
+      .eq('bloque', bloque)
+      .eq('sub_bloque', subBloque)
+      .eq('laboratorio_id', laboratorio_id)
+      .neq('estado', 'cancelada')
+    
+    if (error) {
+      console.error('🚨 DEBUG RESERVAS - Error verificando disponibilidad laboratorio:', error)
+      throw error
+    }
+    
+    const available = !data || data.length === 0
+    return available
+  } catch (error) {
+    console.error('Error al verificar disponibilidad laboratorio:', error)
+    // Fallback a localStorage
+    return !existeReservaEnSlotLocalStorage(fecha, dia, bloque, subBloque)
+  }
+}
+
 // Función existeReservaEnSlot que usa Supabase
 export const existeReservaEnSlot = async (fecha, dia, bloque, subBloque) => {
   const disponible = await verificarDisponibilidad(fecha, bloque, subBloque, dia)
+  return !disponible
+}
+
+// Función existeReservaEnSlot para laboratorio específico
+export const existeReservaEnSlotLaboratorio = async (fecha, dia, bloque, subBloque, laboratorio_id) => {
+  const disponible = await verificarDisponibilidadLaboratorio(fecha, bloque, subBloque, dia, laboratorio_id)
   return !disponible
 }
 

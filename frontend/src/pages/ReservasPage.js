@@ -4,6 +4,7 @@ import {
   obtenerReservas, 
   guardarReserva, 
   existeReservaEnSlot, 
+  existeReservaEnSlotLaboratorio,
   formatearReservaDesdeFormulario,
   obtenerReservasPorFecha,
   obtenerLaboratorios
@@ -172,6 +173,7 @@ const ReservasPage = () => {
   const [reservasDelDia, setReservasDelDia] = useState([]);
   const [todasLasReservas, setTodasLasReservas] = useState([]);
   const [laboratorios, setLaboratorios] = useState([]);
+  const [laboratorioSeleccionado, setLaboratorioSeleccionado] = useState('');
   
   // Estados faltantes que se usan en las funciones
   const [reservas, setReservas] = useState([]);
@@ -239,12 +241,18 @@ const ReservasPage = () => {
       try {
         const labs = await obtenerLaboratorios();
         setLaboratorios(labs);
-        // Si hay laboratorios y no se ha seleccionado uno, seleccionar el primero
-        if (labs.length > 0 && !formData.laboratorio_id) {
+        
+        // Buscar "Lab. Informática 1" como predeterminado
+        const labInformatica1 = labs.find(lab => lab.nombre === 'Lab. Informática 1');
+        const labPorDefecto = labInformatica1 || labs[0]; // Fallback al primero si no existe
+        
+        if (labPorDefecto && !formData.laboratorio_id) {
           setFormData(prev => ({
             ...prev,
-            laboratorio_id: labs[0].id
+            laboratorio_id: labPorDefecto.id
           }));
+          // También establecer el laboratorio seleccionado para el filtro
+          setLaboratorioSeleccionado(labPorDefecto.id);
         }
       } catch (error) {
         console.error('Error al cargar laboratorios:', error);
@@ -295,10 +303,21 @@ const ReservasPage = () => {
         return;
       }
       
-      // Verificar si ya existe una reserva en este slot con la fecha exacta
-      const existe = await existeReservaEnSlot(fechaExacta, dia, bloque.id, subBloque);
+      // Determinar el laboratorio para la reserva
+      const laboratorioParaReserva = laboratorioSeleccionado || formData.laboratorio_id || (laboratorios.length > 0 ? laboratorios[0].id : '');
+      
+      // Verificar si ya existe una reserva en este slot para el laboratorio específico
+      let existe = false;
+      if (laboratorioParaReserva) {
+        existe = await existeReservaEnSlotLaboratorio(fechaExacta, dia, bloque.id, subBloque, laboratorioParaReserva);
+      } else {
+        // Fallback a verificación general si no hay laboratorio
+        existe = await existeReservaEnSlot(fechaExacta, dia, bloque.id, subBloque);
+      }
+      
       if (existe) {
-        alert('Ya existe una reserva en este horario. Selecciona otro slot disponible.');
+        const nombreLab = laboratorios.find(lab => lab.id == laboratorioParaReserva)?.nombre || 'el laboratorio seleccionado';
+        alert(`Ya existe una reserva en este horario para ${nombreLab}. Selecciona otro slot disponible.`);
         return;
       }
 
@@ -308,7 +327,7 @@ const ReservasPage = () => {
         fecha: fechaExacta, // Usar la fecha exacta calculada
         profesor: user?.nombre || '',
         tipoBloque: 'completo',
-        laboratorio_id: formData.laboratorio_id || (laboratorios.length > 0 ? laboratorios[0].id : ''),
+        laboratorio_id: laboratorioParaReserva,
       });
       
       // Actualizar la fecha seleccionada para mostrar la semana correcta
@@ -465,46 +484,68 @@ const ReservasPage = () => {
           {/* Sistema funcionando correctamente */}
         </div>
 
-        {/* Selector de fecha con navegación por semanas */}
-        <div className="bg-white rounded-lg shadow-md p-4 mb-3 border border-gray-100">
-          {/* Navegación por semanas */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-3">
-            <button
-              onClick={irASemanaAnterior}
-              className="w-full sm:w-auto flex items-center justify-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors duration-200 text-sm font-medium"
-            >
-              ⬅️ <span className="hidden sm:inline">Semana </span>Anterior
-            </button>
-            
-            <button
-              onClick={irASemanaActual}
-              className="w-full sm:w-auto flex items-center justify-center gap-1 px-3 py-2 bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors duration-200 text-sm font-medium"
-            >
-              📅 <span className="hidden sm:inline">Semana </span>Actual
-            </button>
-            
-            <button
-              onClick={irASemanaSiguiente}
-              className="w-full sm:w-auto flex items-center justify-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors duration-200 text-sm font-medium"
-            >
-              <span className="hidden sm:inline">Semana </span>Siguiente ➡️
-            </button>
-          </div>
+        {/* Panel de control unificado: Laboratorio, navegación y fecha */}
+        <div className="bg-white rounded-lg shadow-md p-3 mb-3 border border-gray-100">
+          <div className="flex flex-col xl:flex-row items-center justify-between gap-3">
+            {/* Selector de Laboratorio */}
+            <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
+              <span className="text-lg">🔬</span>
+              <label className="text-sm font-semibold text-blue-700 whitespace-nowrap">
+                Laboratorio:
+              </label>
+              <select
+                value={laboratorioSeleccionado}
+                onChange={(e) => setLaboratorioSeleccionado(e.target.value)}
+                className="px-3 py-2 border-2 border-blue-300 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-all duration-200 bg-white text-sm font-medium shadow-sm"
+              >
+                {laboratorios.map(lab => (
+                  <option key={lab.id} value={lab.id}>
+                    {lab.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          {/* Selector de fecha manual */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2 border-t border-gray-200">
-            <label htmlFor="fecha" className="text-sm font-semibold text-gray-700">
-              O selecciona una fecha específica:
-            </label>
-            <input 
-              type="date" 
-              id="fecha" 
-              name="fecha" 
-              value={fechaSeleccionada}
-              onChange={(e) => setFechaSeleccionada(e.target.value)}
-              min={obtenerFechaActual()}
-              className="px-3 py-1 border-2 border-blue-200 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-200 focus:outline-none transition-all duration-200 text-center text-sm"
-            />
+            {/* Navegación por semanas */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={irASemanaAnterior}
+                className="flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors duration-200 text-sm font-medium"
+              >
+                ⬅️ Anterior
+              </button>
+              
+              <button
+                onClick={irASemanaActual}
+                className="flex items-center gap-1 px-3 py-2 bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors duration-200 text-sm font-medium"
+              >
+                📅 Actual
+              </button>
+              
+              <button
+                onClick={irASemanaSiguiente}
+                className="flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors duration-200 text-sm font-medium"
+              >
+                Siguiente ➡️
+              </button>
+            </div>
+
+            {/* Selector de fecha manual */}
+            <div className="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-lg border border-purple-200">
+              <span className="text-lg">📅</span>
+              <label htmlFor="fecha" className="text-sm font-semibold text-purple-700 whitespace-nowrap">
+                Fecha específica:
+              </label>
+              <input 
+                type="date" 
+                id="fecha" 
+                name="fecha" 
+                value={fechaSeleccionada}
+                onChange={(e) => setFechaSeleccionada(e.target.value)}
+                min={obtenerFechaActual()}
+                className="px-3 py-2 border-2 border-purple-300 rounded-md focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all duration-200 text-sm font-medium shadow-sm"
+              />
+            </div>
           </div>
         </div>
 
@@ -583,6 +624,12 @@ const ReservasPage = () => {
                         
                         const reservaEnSlot = reservasDelDia.find(r => {
                           // ⚡ MATCHING MEJORADO Y MÁS FLEXIBLE
+                          
+                          // 0. Filtro por laboratorio seleccionado (SIEMPRE ACTIVO)
+                          if (r.laboratorio_id && laboratorioSeleccionado && 
+                              String(r.laboratorio_id) !== String(laboratorioSeleccionado)) {
+                            return false; // No mostrar reservas de otros laboratorios
+                          }
                           
                           // 1. Coincidencia de fecha más flexible
                           const coincideFecha = r.fecha === fechaExactaDia || 
@@ -687,7 +734,7 @@ const ReservasPage = () => {
                             key={`${bloque.id}-${dia}-${subIdx}`}
                             onClick={() => esClickeable && handleCeldaClick(bloque, dia, subBloques[subIdx])}
                             className={estiloClase}
-                            title={existeReserva ? `Reservado por: ${reservaEnSlot?.profesor || 'N/A'}\nCurso: ${reservaEnSlot?.curso || 'N/A'}\nAsignatura: ${reservaEnSlot?.asignatura || 'N/A'}` : esPasado ? 'Horario pasado' : fechaSeleccionada ? 'Clic para reservar' : 'Selecciona una fecha primero'}
+                            title={existeReserva ? `Reservado por: ${reservaEnSlot?.profesor || 'N/A'}\nCurso: ${reservaEnSlot?.curso || 'N/A'}\nAsignatura: ${reservaEnSlot?.asignatura || 'N/A'}\nLaboratorio: ${reservaEnSlot?.laboratorio || reservaEnSlot?.laboratorio_data?.nombre || 'N/A'}` : esPasado ? 'Horario pasado' : fechaSeleccionada ? 'Clic para reservar' : 'Selecciona una fecha primero'}
                           >
                             {existeReserva ? (
                               <div className="space-y-0.5">
